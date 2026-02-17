@@ -29,8 +29,8 @@ A Chinese media research and translation tool. Translates Chinese articles into 
 
 ### Source Library
 - Track media outlets with type and credibility tier
-- Auto-match sources to articles by URL domain
-- Source credibility badges displayed on article cards and in exports
+- Assign sources to articles manually
+- Source credibility badges displayed on article cards
 
 ### Other
 - History sidebar with search, folders, and drag-and-drop organization
@@ -66,7 +66,7 @@ DEEPSEEK_API_KEY=your_api_key_here
 python app.py
 ```
 
-The app runs at `http://localhost:5000`.
+The app runs at `http://localhost:5001`.
 
 ## Tech Stack
 
