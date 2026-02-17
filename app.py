@@ -1239,13 +1239,13 @@ def project_export_pdf(project_id):
     pdf.ln(4)
 
     # Date
-    pdf.set_font("Helvetica", "", 9)
+    _pdf_set_font(pdf, cjk_font, "", 9)
     pdf.set_text_color(136, 136, 136)
     pdf.cell(0, PDF_LINE_H_SMALL, f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d')}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
     # Client Profile
-    pdf.set_font("Helvetica", "B", 13)
+    _pdf_set_font(pdf, cjk_font, "B", 13)
     pdf.set_text_color(74, 144, 217)
     pdf.cell(0, 8, "Client Profile", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(2)
@@ -1279,7 +1279,7 @@ def project_export_pdf(project_id):
             articles,
             key=lambda a: (a["pub_date"] or a["created_at"] or "")[:10],
         )
-        pdf.set_font("Helvetica", "B", 13)
+        _pdf_set_font(pdf, cjk_font, "B", 13)
         pdf.set_text_color(74, 144, 217)
         pdf.cell(0, 8, "Chronological Timeline", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
@@ -1293,7 +1293,7 @@ def project_export_pdf(project_id):
 
     # Article Details
     if articles:
-        pdf.set_font("Helvetica", "B", 13)
+        _pdf_set_font(pdf, cjk_font, "B", 13)
         pdf.set_text_color(74, 144, 217)
         pdf.cell(0, 8, "Article Details", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
@@ -1365,14 +1365,9 @@ PDF_LINE_H = 6
 PDF_LINE_H_SMALL = 5
 
 
-def _has_cjk(text):
-    """Check if text contains CJK characters."""
-    return any('\u4e00' <= c <= '\u9fff' for c in text)
-
-
 def _pdf_set_font(pdf, cjk_font, style, size, text=""):
-    """Set font to Helvetica for English or CJK font for Chinese text."""
-    if cjk_font and _has_cjk(text):
+    """Set PDF font, preferring CJK font when available."""
+    if cjk_font:
         pdf.set_font(cjk_font, style, size)
     else:
         pdf.set_font("Helvetica", style, size)
@@ -1430,7 +1425,7 @@ def export_pdf():
     pdf.ln(4)
 
     # Date + source
-    pdf.set_font("Helvetica", "", 9)
+    _pdf_set_font(pdf, cjk_font, "", 9)
     pdf.set_text_color(136, 136, 136)
     pdf.cell(0, PDF_LINE_H_SMALL, f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d')}", new_x="LMARGIN", new_y="NEXT")
     if url:
@@ -1439,7 +1434,7 @@ def export_pdf():
 
     # Executive Summary
     if summary.strip():
-        pdf.set_font("Helvetica", "B", 13)
+        _pdf_set_font(pdf, cjk_font, "B", 13)
         pdf.set_text_color(74, 144, 217)
         pdf.cell(0, 8, "Executive Summary", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
@@ -1458,7 +1453,7 @@ def export_pdf():
     pdf.ln(6)
 
     # English section
-    pdf.set_font("Helvetica", "B", 13)
+    _pdf_set_font(pdf, cjk_font, "B", 13)
     pdf.set_text_color(74, 144, 217)
     pdf.cell(0, 8, "English Translation", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(2)
@@ -1468,7 +1463,7 @@ def export_pdf():
 
     # Highlights
     if highlights:
-        pdf.set_font("Helvetica", "B", 13)
+        _pdf_set_font(pdf, cjk_font, "B", 13)
         pdf.set_text_color(74, 144, 217)
         pdf.cell(0, 8, "Highlights", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
@@ -1485,7 +1480,7 @@ def export_pdf():
 
     # Notes
     if notes.strip():
-        pdf.set_font("Helvetica", "B", 13)
+        _pdf_set_font(pdf, cjk_font, "B", 13)
         pdf.set_text_color(74, 144, 217)
         pdf.cell(0, 8, "Research Notes", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
@@ -1496,7 +1491,7 @@ def export_pdf():
     # Citation
     if citation.strip():
         pdf.ln(6)
-        pdf.set_font("Helvetica", "B", 13)
+        _pdf_set_font(pdf, cjk_font, "B", 13)
         pdf.set_text_color(74, 144, 217)
         pdf.cell(0, 8, "Citation", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)

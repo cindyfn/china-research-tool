@@ -53,7 +53,7 @@
                         </span>
                     </h1>
                     <div class="window-body">
-                        <p class="landing-subtitle">Because copy-pasting into ChatGPT won't cut it in corporate.</p>
+                        <p class="landing-subtitle"><em>Because copy-pasting into ChatGPT won't cut it in corporate.</em></p>
                         <div class="version-notes" id="version-notes">
                             <div class="version-pin">&#128204;</div>
                             <div class="version-content">
@@ -160,7 +160,7 @@
         <div id="view-quick-translate" class="app-view">
             <div class="container" id="main-container">
                 <div class="view-header">
-                    <button class="back-btn" onclick="navigateTo('landing')">&larr; Back</button>
+                    <button class="back-btn" onclick="navigateTo('landing')">&larr; Back to Home</button>
                     <h1>My CN Researcher (v1.0)</h1>
                 </div>
 
@@ -373,7 +373,7 @@
         <div id="view-projects" class="app-view">
             <div class="projects-container">
                 <div class="view-header">
-                    <button class="back-btn" onclick="navigateTo('landing')">&larr; Back</button>
+                    <button class="back-btn" onclick="navigateTo('landing')">&larr; Back to Home</button>
                     <h1>Projects</h1>
                     <button class="btn-primary btn-new-project" onclick="createProject()">+ New Project</button>
                 </div>
@@ -446,8 +446,8 @@
                 <!-- Article Detail (shown when clicking an article) -->
                 <div class="project-article-detail" id="project-article-detail" style="display:none">
                     <div class="article-detail-header">
-                        <button class="back-btn" onclick="closeArticleDetail()">&larr; Back to Articles</button>
-                        <button class="btn-action btn-danger" onclick="removeArticleFromProject(currentArticleDetailId)" style="margin-left:auto">Remove from Project</button>
+                        <button class="back-btn" id="article-detail-back-btn" onclick="closeArticleDetail()">&larr; Back to Articles</button>
+                        <button class="btn-action btn-danger" id="article-detail-remove-btn" onclick="removeArticleFromProject(currentArticleDetailId)" style="margin-left:auto">Remove from Project</button>
                     </div>
 
                     <!-- Article Metadata Card (Project Article) -->
@@ -2025,7 +2025,7 @@
                         projectOptions += `<option value="${p.id}">${escapeHtml(p.project_name || p.client_name_en || p.client_name_cn || 'Project #' + p.id)}</option>`;
                     });
                     return `<div class="unfiled-item">
-                        <div class="unfiled-item-info">
+                        <div class="unfiled-item-info" style="cursor:pointer" onclick="openUnfiledArticle(${item.id})">
                             <span class="unfiled-item-title">${escapeHtml(title)}</span>
                             <span class="unfiled-item-date">${date}</span>
                         </div>
@@ -2037,6 +2037,27 @@
             } catch (e) {
                 console.error('Failed to load unfiled:', e);
             }
+        }
+
+        let openedFromUnfiled = false;
+
+        async function openUnfiledArticle(entryId) {
+            openedFromUnfiled = true;
+            currentProjectId = null;
+            // Switch to project detail view
+            document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-project-detail').classList.add('active');
+            // Hide project-specific sections
+            document.getElementById('client-profile').style.display = 'none';
+            document.querySelector('.project-translate-input').style.display = 'none';
+            document.getElementById('project-timeline-section').style.display = 'none';
+            document.getElementById('project-articles-section').style.display = 'none';
+            document.getElementById('project-entities-section').style.display = 'none';
+            // Update header buttons for unfiled context
+            document.getElementById('article-detail-back-btn').innerHTML = '&larr; Back to Unfiled';
+            document.getElementById('article-detail-remove-btn').style.display = 'none';
+            // Show article detail
+            await openArticleDetail(entryId);
         }
 
         async function assignUnfiledToProject(entryId, projectId) {
@@ -2370,6 +2391,14 @@
         function closeArticleDetail() {
             currentArticleDetailId = null;
             document.getElementById('project-article-detail').style.display = 'none';
+            // Reset header buttons to default
+            document.getElementById('article-detail-back-btn').innerHTML = '&larr; Back to Articles';
+            document.getElementById('article-detail-remove-btn').style.display = '';
+            if (openedFromUnfiled) {
+                openedFromUnfiled = false;
+                navigateTo('projects');
+                return;
+            }
             // Re-show the project sections
             document.getElementById('client-profile').style.display = '';
             document.querySelector('.project-translate-input').style.display = '';
