@@ -4,6 +4,8 @@ A Chinese media research and translation tool. Translates Chinese articles into 
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue) ![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey) ![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-green)
 
+![Landing page](screenshot.png)
+
 ## Features
 
 ### Quick Translate
