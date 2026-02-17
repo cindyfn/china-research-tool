@@ -2466,7 +2466,15 @@
 
         function editProfileField(el, field) {
             if (el.querySelector('input, textarea')) return; // already editing
-            const currentText = el.querySelector('.field-placeholder') ? '' : el.textContent.trim();
+            let currentText = '';
+            if (!el.querySelector('.field-placeholder')) {
+                const clone = el.cloneNode(true);
+                const label = clone.querySelector('.profile-field-label');
+                if (label) label.remove();
+                const clearBtn = clone.querySelector('.field-clear-btn');
+                if (clearBtn) clearBtn.remove();
+                currentText = clone.textContent.trim();
+            }
             const isNotes = field === 'notes';
 
             if (isNotes) {
@@ -2503,7 +2511,12 @@
         function editProfileDateField(el, field) {
             if (el.querySelector('input')) return;
             const label = el.querySelector('.profile-field-label');
-            const currentVal = el.textContent.replace('Due by:', '').trim();
+            const clone = el.cloneNode(true);
+            const cloneLabel = clone.querySelector('.profile-field-label');
+            if (cloneLabel) cloneLabel.remove();
+            const clearBtn = clone.querySelector('.field-clear-btn');
+            if (clearBtn) clearBtn.remove();
+            const currentVal = clone.textContent.trim();
             const dateVal = (currentVal && currentVal !== 'Not set') ? currentVal : '';
 
             const input = document.createElement('input');
