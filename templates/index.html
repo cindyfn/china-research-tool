@@ -1,0 +1,2585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My CN Researcher (v1.0)</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Sidebar reopen button (visible when sidebar is collapsed) -->
+    <button class="sidebar-reopen" id="sidebar-reopen" title="Show history">&rsaquo;</button>
+
+    <!-- History Sidebar (only visible in quick-translate view) -->
+    <div class="history-sidebar" id="history-sidebar">
+        <div class="history-header">
+            <span>History</span>
+            <div>
+                <button id="add-folder-btn" title="New folder">+</button>
+                <button class="history-toggle" id="history-toggle" title="Toggle history">&lsaquo;</button>
+            </div>
+        </div>
+        <div class="history-search">
+            <input type="text" id="history-search-input" placeholder="Search translations..." oninput="onHistorySearch(this.value)">
+        </div>
+        <div class="history-list" id="history-list">
+            <div class="history-empty">No translations yet</div>
+        </div>
+        <div class="history-list" id="history-search-results" style="display:none"></div>
+    </div>
+
+    <div class="dark-mode-toggle" onclick="toggleDarkMode()">
+        <span class="dm-icon dm-sun">☀️</span>
+        <div class="dm-track">
+            <div class="dm-thumb"></div>
+        </div>
+        <span class="dm-icon dm-moon">🌙</span>
+    </div>
+
+    <div id="app-root">
+        <!-- ========== Landing Page ========== -->
+        <div id="view-landing" class="app-view active">
+            <div class="landing-container">
+                <div class="window-frame">
+                    <h1 class="landing-title">
+                        <span class="title-icon">
+                            <span class="icon-glass">&#128270;</span><span class="icon-char">中</span>
+                        </span>
+                        <span class="title-text">My CN Researcher (v1.0)</span>
+                        <span class="window-buttons">
+                            <span class="win-btn win-minimize" title="Minimize">_</span>
+                            <span class="win-btn win-maximize" title="Maximize">&#9633;</span>
+                            <span class="win-btn win-close" title="Close">&#10005;</span>
+                        </span>
+                    </h1>
+                    <div class="window-body">
+                        <p class="landing-subtitle">Because copy-pasting into ChatGPT won't cut it in corporate.</p>
+                        <div class="version-notes" id="version-notes">
+                            <div class="version-pin">&#128204;</div>
+                            <div class="version-content">
+                            <div class="version-header">
+                                <p class="version-title"><u>What's in Version 1.0:</u></p>
+                                <span class="version-btns">
+                                    <span class="win-btn version-minimize" onclick="event.stopPropagation(); document.getElementById('version-list').style.display = document.getElementById('version-list').style.display === 'none' ? '' : 'none';" title="Minimize">_</span>
+                                    <span class="win-btn win-close version-close" onclick="event.stopPropagation(); document.getElementById('version-notes').style.display = 'none';" title="Close">&#10005;</span>
+                                </span>
+                            </div>
+                            <ul class="version-list" id="version-list">
+                                <li>Full article translation &amp; executive summaries via DeepSeek</li>
+                                <li>Auto-scraped article metadata (title, source, date, author)</li>
+                                <li>Text highlighting, notes, and PDF export</li>
+                                <li>Citation extractor with 3 formatting styles</li>
+                                <li>Source credibility library</li>
+                                <li>Project-based investigations with timelines</li>
+                                <li>AI-generated executive briefs in project PDF reports</li>
+                                <li>Search, folders, and duplicate URL detection</li>
+                            </ul>
+                            </div>
+                        </div>
+                        <div class="landing-cards">
+                    <div class="landing-card" onclick="navigateTo('quick-translate')">
+                        <h2><span class="card-icon card-icon-pen">&#128221;</span> Quick Translate</h2>
+                        <p>Translate Chinese articles, highlight key findings, and export reports</p>
+                    </div>
+                    <div class="landing-card" onclick="navigateTo('projects')">
+                        <h2><span class="card-icon card-icon-folder">&#128194;</span> Projects</h2>
+                        <p>Organize research into client investigations with timelines and PDF reports</p>
+                        <span class="unfiled-badge" id="landing-unfiled-badge" style="display:none">0</span>
+                    </div>
+                </div>
+
+                <!-- How To / Documentation -->
+                <div class="guide-section">
+                    <div class="guide-toggle" onclick="this.parentElement.classList.toggle('guide-open')">
+                        <span class="guide-toggle-icon">&#9656;</span> How to Use
+                    </div>
+                    <div class="guide-content">
+                        <div class="guide-row">
+                            <div class="guide-block guide-primary">
+                                <div class="guide-block-body">
+                                    <h3>Quick Translate</h3>
+                                    <ol>
+                                        <li><strong>Paste a URL or Chinese text</strong> and click Translate. The app scrapes the article, translates it via DeepSeek, and generates an executive summary.</li>
+                                        <li><strong>Article Info</strong> auto-populates from the scraped page (title, source, date, author). Every field is editable and auto-saves.</li>
+                                        <li><strong>Highlight key findings</strong> by selecting text in the Chinese or English panels. Pick a color from the toolbar that appears.</li>
+                                        <li><strong>Add notes</strong> below the translation for your own observations.</li>
+                                        <li><strong>Citation Extractor</strong> generates formatted citations in three styles (Inline, Footnote, Short Ref). Set your default style and copy with one click.</li>
+                                        <li><strong>Link a Source</strong> to tag the article's outlet and credibility tier. Manage sources in the Sources tab.</li>
+                                        <li><strong>Save to Project</strong> to file the translation under a project or as Unfiled for later.</li>
+                                        <li><strong>Export PDF</strong> to download the translation with summary, highlights, notes, and citation.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            <div class="guide-block guide-primary">
+                                <div class="guide-block-body">
+                                    <h3>Projects</h3>
+                                    <ol>
+                                        <li><strong>Create a project</strong> for each client investigation. Add a name, industry, status, and due date.</li>
+                                        <li><strong>Add articles</strong> by translating directly from the project page, or save existing translations via Quick Translate.</li>
+                                        <li><strong>Edit any field</strong> by clicking directly on it in the project profile card. Click the status badge to cycle through Active / Paused / Finished.</li>
+                                        <li><strong>Timeline</strong> auto-generates from article publication dates, giving a chronological view of events.</li>
+                                        <li><strong>Hover a timeline entry</strong> to highlight the matching article card below.</li>
+                                        <li><strong>Click an article card</strong> to view the full translation, highlights, notes, and citation within the project.</li>
+                                        <li><strong>Export Project PDF</strong> generates a full report with client profile, an AI-generated executive brief, timeline, and all article details with citations.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="guide-row">
+                            <div class="guide-block guide-secondary">
+                                <div class="guide-block-body">
+                                    <h3>History &amp; Folders</h3>
+                                    <ol>
+                                        <li>All translations are saved in the <strong>sidebar</strong>. Click any entry to reload it.</li>
+                                        <li><strong>Create folders</strong> with the + button to organize by topic, client, or priority.</li>
+                                        <li><strong>Drag and drop</strong> entries between folders to reorganize.</li>
+                                        <li><strong>Search</strong> across all translations using the search bar at the top of the sidebar.</li>
+                                        <li><strong>Duplicate detection</strong> warns you if a URL has already been translated, offering to load the existing version.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            <div class="guide-block guide-secondary">
+                                <div class="guide-block-body">
+                                    <h3>Sources &amp; Credibility</h3>
+                                    <ol>
+                                        <li>Go to <strong>Sources tab</strong> in Quick Translate to manage your source library.</li>
+                                        <li>Add outlets with a <strong>credibility tier</strong> (High / Medium / Low) and optional notes.</li>
+                                        <li>When you link a source to a translation, its credibility badge appears on project article cards and in PDF exports.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                    </div><!-- /window-body -->
+                </div><!-- /window-frame -->
+            </div>
+        </div>
+
+        <!-- ========== Quick Translate View ========== -->
+        <div id="view-quick-translate" class="app-view">
+            <div class="container" id="main-container">
+                <div class="view-header">
+                    <button class="back-btn" onclick="navigateTo('landing')">&larr; Back</button>
+                    <h1>My CN Researcher (v1.0)</h1>
+                </div>
+
+                <!-- Tab Bar -->
+                <div class="tab-bar">
+                    <button class="tab active" data-tab="research">Research</button>
+                    <button class="tab" data-tab="sources">Sources</button>
+                </div>
+
+                <!-- ========== Research Tab ========== -->
+                <div id="tab-research">
+                    <!-- Input -->
+                    <div class="input-section">
+                        <label for="url-input">Article URL</label>
+                        <div class="url-row">
+                            <input type="url" id="url-input" placeholder="https://example.com/chinese-article">
+                        </div>
+                        <div class="separator">- or paste article text below -</div>
+                        <label for="text-input">Chinese Text</label>
+                        <textarea id="text-input" placeholder="Paste Chinese article text here..."></textarea>
+                        <div id="error-msg" class="error-msg"></div>
+                        <button class="btn-primary" id="translate-btn" onclick="translateText()">Translate</button>
+                    </div>
+
+                    <!-- Loading -->
+                    <div class="spinner" id="spinner">Translating & generating summary with DeepSeek...</div>
+
+                    <!-- Highlight toolbar (floats near selection) -->
+                    <div class="highlight-toolbar" id="highlight-toolbar">
+                        <button class="color-btn" data-color="yellow" style="background:#fef08a;" title="Yellow"></button>
+                        <button class="color-btn" data-color="green" style="background:#bbf7d0;" title="Green"></button>
+                        <button class="color-btn" data-color="blue" style="background:#bfdbfe;" title="Blue"></button>
+                        <button class="color-btn" data-color="red" style="background:#fecaca;" title="Red"></button>
+                        <button class="color-btn" data-color="purple" style="background:#e9d5ff;" title="Purple"></button>
+                        <button class="remove-btn" title="Remove highlight">&times;</button>
+                    </div>
+
+                    <!-- Article Metadata Card -->
+                    <div class="metadata-card" id="metadata-section" style="display:none">
+                        <div class="metadata-card-header">Article Info</div>
+                        <div class="metadata-card-body">
+                            <div class="metadata-row">
+                                <label>Article Title (CN)</label>
+                                <div class="meta-input-wrap"><input type="text" id="meta-title-cn" placeholder="Chinese article title" data-field="title"><button class="meta-clear-btn" onclick="clearMetaField('meta-title-cn')" title="Clear">&#128465;</button></div>
+                            </div>
+                            <div class="metadata-row">
+                                <label>Article Title (EN)</label>
+                                <div class="meta-input-wrap"><input type="text" id="meta-title-en" placeholder="English article title" data-field="article_title_en"><button class="meta-clear-btn" onclick="clearMetaField('meta-title-en')" title="Clear">&#128465;</button></div>
+                            </div>
+                            <div class="metadata-row metadata-row-half">
+                                <div>
+                                    <label>Source (CN)</label>
+                                    <div class="meta-input-wrap"><input type="text" id="meta-source-cn" placeholder="e.g. 澎湃新闻" data-field="scraped_source_name"><button class="meta-clear-btn" onclick="clearMetaField('meta-source-cn')" title="Clear">&#128465;</button></div>
+                                </div>
+                                <div>
+                                    <label>Source (EN)</label>
+                                    <div class="meta-input-wrap"><input type="text" id="meta-source-en" placeholder="e.g. The Paper" data-field="source_name_en"><button class="meta-clear-btn" onclick="clearMetaField('meta-source-en')" title="Clear">&#128465;</button></div>
+                                </div>
+                            </div>
+                            <div class="metadata-row metadata-row-half">
+                                <div>
+                                    <label>Date Written</label>
+                                    <div class="meta-input-wrap"><input type="date" id="meta-pub-date" data-field="pub_date"><button class="meta-clear-btn" onclick="clearMetaField('meta-pub-date')" title="Clear">&#128465;</button></div>
+                                </div>
+                                <div>
+                                    <label>Author</label>
+                                    <div class="meta-input-wrap"><input type="text" id="meta-author" placeholder="Author name" data-field="author"><button class="meta-clear-btn" onclick="clearMetaField('meta-author')" title="Clear">&#128465;</button></div>
+                                </div>
+                            </div>
+                            <div class="metadata-row">
+                                <label>URL</label>
+                                <div class="meta-input-wrap"><input type="url" id="meta-url" placeholder="Article URL" data-field="url"><button class="meta-clear-btn" onclick="clearMetaField('meta-url')" title="Clear">&#128465;</button></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Executive Summary -->
+                    <div class="summary-panel" id="summary-section" style="display: none;">
+                        <div class="summary-header">Executive Summary</div>
+                        <div class="summary-body" id="summary-panel">
+                            <span class="placeholder">Executive summary will appear here</span>
+                        </div>
+                    </div>
+
+                    <!-- Source Metadata Panel -->
+                    <div class="source-meta" id="source-section" style="display: none;">
+                        <span class="source-meta-label">Source:</span>
+                        <select id="source-select">
+                            <option value="">-- Select source --</option>
+                        </select>
+                        <button class="meta-clear-btn dropdown-clear-btn" onclick="clearDropdown('source-select')" title="Clear">&#128465;</button>
+                        <span class="source-meta-detail" id="source-detail"></span>
+                    </div>
+
+                    <!-- Save to Project Panel -->
+                    <div class="save-project-panel" id="save-project-section" style="display:none">
+                        <span class="save-project-label">Save to Project:</span>
+                        <select id="project-select">
+                            <option value="">-- Not saved --</option>
+                            <option value="0">Unfiled</option>
+                        </select>
+                        <button class="meta-clear-btn dropdown-clear-btn" onclick="clearDropdown('project-select')" title="Clear">&#128465;</button>
+                        <span class="save-project-status" id="project-status"></span>
+                    </div>
+
+                    <!-- Side-by-side -->
+                    <div class="panels" id="panels" style="display: none;">
+                        <div class="panel">
+                            <div class="panel-header">
+                                Original Chinese
+                                <span class="highlight-count" id="chinese-hl-count"></span>
+                            </div>
+                            <div class="panel-body chinese" id="chinese-panel">
+                                <span class="placeholder">Chinese text will appear here</span>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-header">
+                                English Translation
+                                <span class="highlight-count" id="english-hl-count"></span>
+                            </div>
+                            <div class="panel-body" id="english-panel">
+                                <span class="placeholder">English translation will appear here</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="notes-section" id="notes-section" style="display: none;">
+                        <label for="notes">Research Notes</label>
+                        <textarea id="notes" placeholder="Add your research notes here..."></textarea>
+                    </div>
+
+                    <!-- Citation Extractor -->
+                    <div class="citation-section" id="citation-section" style="display: none;">
+                        <div class="citation-header">
+                            <span class="citation-title">Extract Citation</span>
+                            <div class="citation-style-tabs">
+                                <button class="citation-tab active" data-style="inline" onclick="setCitationStyle('inline', 'qt')">Inline</button>
+                                <button class="citation-tab" data-style="footnote" onclick="setCitationStyle('footnote', 'qt')">Footnote</button>
+                                <button class="citation-tab" data-style="short" onclick="setCitationStyle('short', 'qt')">Short Ref</button>
+                                <button class="citation-default-btn" onclick="setDefaultCitationStyle()" title="Set current style as default">Set as default</button>
+                            </div>
+                        </div>
+                        <div class="citation-output">
+                            <pre class="citation-text" id="citation-text"></pre>
+                            <button class="citation-copy-btn" onclick="copyCitation('qt')" title="Copy citation">Copy</button>
+                        </div>
+                    </div>
+
+                    <!-- Export -->
+                    <div class="export-section" id="export-section" style="display: none;">
+                        <button class="btn-export" onclick="exportReport()">Export Text</button>
+                        <button class="btn-export btn-export-pdf" onclick="exportPDF()">Export PDF</button>
+                    </div>
+                </div>
+
+                <!-- ========== Sources Tab ========== -->
+                <div id="tab-sources" style="display: none;">
+                    <div class="sources-form" id="sources-form">
+                        <input type="text" id="source-name" placeholder="Publication name" required>
+                        <select id="source-type">
+                            <option value="">Type...</option>
+                            <option value="State Media">State Media</option>
+                            <option value="Independent">Independent</option>
+                            <option value="Commercial">Commercial</option>
+                            <option value="Wire Service">Wire Service</option>
+                            <option value="Academic">Academic</option>
+                            <option value="Government">Government</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <select id="source-credibility">
+                            <option value="">Credibility...</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                            <option value="Unknown">Unknown</option>
+                        </select>
+                        <select id="source-language">
+                            <option value="">Language...</option>
+                            <option value="Chinese">Chinese</option>
+                            <option value="English">English</option>
+                            <option value="Bilingual">Bilingual</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <input type="text" id="source-notes" placeholder="Notes">
+                        <button class="btn-primary" onclick="addSource()">Add</button>
+                    </div>
+                    <table class="sources-table" id="sources-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Credibility</th>
+                                <th>Language</th>
+                                <th>Notes</th>
+                                <th>Articles</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sources-tbody">
+                        </tbody>
+                    </table>
+                    <div class="sources-empty" id="sources-empty">No sources added yet</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Projects List View ========== -->
+        <div id="view-projects" class="app-view">
+            <div class="projects-container">
+                <div class="view-header">
+                    <button class="back-btn" onclick="navigateTo('landing')">&larr; Back</button>
+                    <h1>Projects</h1>
+                    <button class="btn-primary btn-new-project" onclick="createProject()">+ New Project</button>
+                </div>
+
+                <!-- Unfiled Section -->
+                <div class="unfiled-section" id="unfiled-section">
+                    <div class="unfiled-header" onclick="toggleUnfiled()">
+                        <span class="folder-chevron" id="unfiled-chevron">&#9660;</span>
+                        <span>Unfiled Articles</span>
+                        <span class="unfiled-count" id="unfiled-count">0</span>
+                    </div>
+                    <div class="unfiled-list" id="unfiled-list"></div>
+                </div>
+
+                <!-- Projects Grid -->
+                <div class="projects-grid" id="projects-grid"></div>
+            </div>
+        </div>
+
+        <!-- ========== Project Detail View ========== -->
+        <div id="view-project-detail" class="app-view">
+            <div class="project-detail-container">
+                <div class="view-header">
+                    <button class="back-btn" onclick="navigateTo('projects')">&larr; Back to Projects</button>
+                    <div class="view-header-actions">
+                        <button class="btn-action btn-export-pdf" onclick="exportProjectPDF()">Export PDF</button>
+                        <button class="btn-action btn-danger" onclick="deleteProject()">Delete</button>
+                    </div>
+                </div>
+
+                <!-- Client Profile -->
+                <div class="client-profile" id="client-profile"></div>
+
+                <!-- Translate within project -->
+                <div class="project-translate-input">
+                    <h3>Add Article to Project</h3>
+                    <div class="project-translate-row">
+                        <input type="url" id="project-url-input" placeholder="Article URL">
+                        <span class="separator-inline">or</span>
+                        <input type="text" id="project-text-input" placeholder="Paste Chinese text">
+                        <button class="btn-primary btn-translate-in-project" onclick="translateInProject()">Translate</button>
+                    </div>
+                    <div class="spinner" id="project-spinner">Translating...</div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="project-timeline-section" id="project-timeline-section" style="display:none">
+                    <h3>Timeline</h3>
+                    <div class="project-timeline" id="project-timeline"></div>
+                </div>
+
+                <!-- Key Entities -->
+                <div class="project-entities-section" id="project-entities-section" style="display:none">
+                    <div class="entities-header">
+                        <h3>Key Entities</h3>
+                        <button class="btn-action btn-sm" onclick="loadProjectEntities(currentProjectId)">Refresh</button>
+                    </div>
+                    <div class="entities-body" id="project-entities"></div>
+                </div>
+
+                <!-- Articles -->
+                <div class="project-articles-section" id="project-articles-section" style="display:none">
+                    <div class="project-articles-header">
+                        <h3>Articles <span class="article-count-label" id="project-article-count"></span></h3>
+                        <input type="text" class="project-article-search" id="project-article-search" placeholder="Search articles..." oninput="filterProjectArticles(this.value)">
+                    </div>
+                    <div class="project-articles" id="project-articles"></div>
+                </div>
+
+                <!-- Article Detail (shown when clicking an article) -->
+                <div class="project-article-detail" id="project-article-detail" style="display:none">
+                    <div class="article-detail-header">
+                        <button class="back-btn" onclick="closeArticleDetail()">&larr; Back to Articles</button>
+                        <button class="btn-action btn-danger" onclick="removeArticleFromProject(currentArticleDetailId)" style="margin-left:auto">Remove from Project</button>
+                    </div>
+
+                    <!-- Article Metadata Card (Project Article) -->
+                    <div class="metadata-card" id="pa-metadata-section">
+                        <div class="metadata-card-header">Article Info</div>
+                        <div class="metadata-card-body">
+                            <div class="metadata-row">
+                                <label>Article Title (CN)</label>
+                                <div class="meta-input-wrap"><input type="text" id="pa-meta-title-cn" placeholder="Chinese article title" data-field="title"><button class="meta-clear-btn" onclick="clearMetaField('pa-meta-title-cn')" title="Clear">&#128465;</button></div>
+                            </div>
+                            <div class="metadata-row">
+                                <label>Article Title (EN)</label>
+                                <div class="meta-input-wrap"><input type="text" id="pa-meta-title-en" placeholder="English article title" data-field="article_title_en"><button class="meta-clear-btn" onclick="clearMetaField('pa-meta-title-en')" title="Clear">&#128465;</button></div>
+                            </div>
+                            <div class="metadata-row metadata-row-half">
+                                <div>
+                                    <label>Source (CN)</label>
+                                    <div class="meta-input-wrap"><input type="text" id="pa-meta-source-cn" placeholder="e.g. 澎湃新闻" data-field="scraped_source_name"><button class="meta-clear-btn" onclick="clearMetaField('pa-meta-source-cn')" title="Clear">&#128465;</button></div>
+                                </div>
+                                <div>
+                                    <label>Source (EN)</label>
+                                    <div class="meta-input-wrap"><input type="text" id="pa-meta-source-en" placeholder="e.g. The Paper" data-field="source_name_en"><button class="meta-clear-btn" onclick="clearMetaField('pa-meta-source-en')" title="Clear">&#128465;</button></div>
+                                </div>
+                            </div>
+                            <div class="metadata-row metadata-row-half">
+                                <div>
+                                    <label>Date Written</label>
+                                    <div class="meta-input-wrap"><input type="date" id="pa-meta-pub-date" data-field="pub_date"><button class="meta-clear-btn" onclick="clearMetaField('pa-meta-pub-date')" title="Clear">&#128465;</button></div>
+                                </div>
+                                <div>
+                                    <label>Author</label>
+                                    <div class="meta-input-wrap"><input type="text" id="pa-meta-author" placeholder="Author name" data-field="author"><button class="meta-clear-btn" onclick="clearMetaField('pa-meta-author')" title="Clear">&#128465;</button></div>
+                                </div>
+                            </div>
+                            <div class="metadata-row">
+                                <label>URL</label>
+                                <div class="meta-input-wrap"><input type="url" id="pa-meta-url" placeholder="Article URL" data-field="url"><button class="meta-clear-btn" onclick="clearMetaField('pa-meta-url')" title="Clear">&#128465;</button></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="summary-panel" id="pa-summary-section" style="display:none">
+                        <div class="summary-header">Executive Summary</div>
+                        <div class="summary-body" id="pa-summary-panel"></div>
+                    </div>
+
+                    <div class="source-meta" id="pa-source-section" style="display:none">
+                        <span class="source-meta-label">Source:</span>
+                        <span class="source-meta-detail" id="pa-source-detail"></span>
+                    </div>
+
+                    <div class="article-detail-meta" id="pa-meta"></div>
+
+                    <div class="panels" id="pa-panels">
+                        <div class="panel">
+                            <div class="panel-header">
+                                Original Chinese
+                                <span class="highlight-count" id="pa-chinese-hl-count"></span>
+                            </div>
+                            <div class="panel-body chinese" id="pa-chinese-panel"></div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-header">
+                                English Translation
+                                <span class="highlight-count" id="pa-english-hl-count"></span>
+                            </div>
+                            <div class="panel-body" id="pa-english-panel"></div>
+                        </div>
+                    </div>
+
+                    <div class="notes-section" id="pa-notes-section" style="display:none">
+                        <label>Research Notes</label>
+                        <div class="pa-notes-display" id="pa-notes"></div>
+                    </div>
+
+                    <!-- Citation Extractor (Project Article) -->
+                    <div class="citation-section" id="pa-citation-section">
+                        <div class="citation-header">
+                            <span class="citation-title">Extract Citation</span>
+                            <div class="citation-style-tabs">
+                                <button class="citation-tab active" data-style="inline" onclick="setCitationStyle('inline', 'pa')">Inline</button>
+                                <button class="citation-tab" data-style="footnote" onclick="setCitationStyle('footnote', 'pa')">Footnote</button>
+                                <button class="citation-tab" data-style="short" onclick="setCitationStyle('short', 'pa')">Short Ref</button>
+                                <button class="citation-default-btn" onclick="setDefaultCitationStyle()" title="Set current style as default">Set as default</button>
+                            </div>
+                        </div>
+                        <div class="citation-output">
+                            <pre class="citation-text" id="pa-citation-text"></pre>
+                            <button class="citation-copy-btn" onclick="copyCitation('pa')" title="Copy citation">Copy</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---- State ----
+        let currentHistoryId = null;
+        let saveTimeout = null;
+        let sourcesCache = [];
+        let projectsCache = [];
+        let currentProjectId = null;
+        let currentArticleDetailId = null;
+        let currentView = 'landing';
+
+        // ---- Dark Mode ----
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? '1' : '0');
+        }
+        if (localStorage.getItem('darkMode') === '1') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // ---- View Router ----
+        function navigateTo(view, params = {}) {
+            currentView = view;
+            document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+
+            const sidebar = document.getElementById('history-sidebar');
+            const reopenBtn = document.getElementById('sidebar-reopen');
+
+            if (view === 'quick-translate') {
+                document.getElementById('view-quick-translate').classList.add('active');
+                sidebar.style.display = 'flex';
+                document.getElementById('view-quick-translate').querySelector('.container').style.marginLeft = '';
+                loadHistory();
+            } else {
+                sidebar.style.display = 'none';
+                reopenBtn.classList.remove('visible');
+            }
+
+            if (view === 'landing') {
+                document.getElementById('view-landing').classList.add('active');
+                updateUnfiledBadge();
+            } else if (view === 'projects') {
+                document.getElementById('view-projects').classList.add('active');
+                loadProjects();
+                loadUnfiled();
+            } else if (view === 'project-detail') {
+                document.getElementById('view-project-detail').classList.add('active');
+                currentProjectId = params.projectId;
+                loadProjectDetail(params.projectId);
+            }
+        }
+
+        // ---- Unfiled Badge ----
+        async function updateUnfiledBadge() {
+            try {
+                const resp = await fetch('/unfiled');
+                const items = await resp.json();
+                const badge = document.getElementById('landing-unfiled-badge');
+                if (items.length > 0) {
+                    badge.textContent = items.length;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (e) {}
+        }
+
+        // ---- Tab Switching ----
+        document.querySelectorAll(".tab-bar .tab").forEach(tab => {
+            tab.addEventListener("click", () => {
+                document.querySelectorAll(".tab-bar .tab").forEach(t => t.classList.remove("active"));
+                tab.classList.add("active");
+                const target = tab.dataset.tab;
+                document.getElementById("tab-research").style.display = target === "research" ? "block" : "none";
+                document.getElementById("tab-sources").style.display = target === "sources" ? "block" : "none";
+                if (target === "sources") loadSources();
+            });
+        });
+
+        // ---- History Search ----
+        let historySearchTimeout = null;
+        function onHistorySearch(query) {
+            clearTimeout(historySearchTimeout);
+            const resultsDiv = document.getElementById('history-search-results');
+            const listDiv = document.getElementById('history-list');
+            if (!query.trim()) {
+                resultsDiv.style.display = 'none';
+                listDiv.style.display = '';
+                return;
+            }
+            historySearchTimeout = setTimeout(async () => {
+                try {
+                    const resp = await fetch(`/search?q=${encodeURIComponent(query.trim())}`);
+                    const results = await resp.json();
+                    listDiv.style.display = 'none';
+                    resultsDiv.style.display = '';
+                    if (!results.length) {
+                        resultsDiv.innerHTML = '<div class="history-empty">No results</div>';
+                        return;
+                    }
+                    resultsDiv.innerHTML = results.map(r => {
+                        const date = r.created_at.slice(0, 10);
+                        const displayName = r.title || r.preview || '(no text)';
+                        return `<div class="history-entry search-result" data-id="${r.id}" onclick="loadHistoryEntry(${r.id}); document.getElementById('history-search-input').value=''; onHistorySearch('');">
+                            <div class="history-entry-preview">${escapeHtml(displayName)}</div>
+                            <div class="history-entry-meta"><span>${date}</span></div>
+                        </div>`;
+                    }).join('');
+                } catch (e) {
+                    console.error('Search failed:', e);
+                }
+            }, 300);
+        }
+
+        // ---- Collapsed folder state (persisted in localStorage) ----
+        function getCollapsedFolders() {
+            try { return JSON.parse(localStorage.getItem("collapsedFolders") || "{}"); }
+            catch { return {}; }
+        }
+        function setFolderCollapsed(key, collapsed) {
+            const state = getCollapsedFolders();
+            state[key] = collapsed;
+            localStorage.setItem("collapsedFolders", JSON.stringify(state));
+        }
+
+        // ---- History Sidebar ----
+        async function loadHistory() {
+            try {
+                const [histResp, foldersResp] = await Promise.all([
+                    fetch("/history"),
+                    fetch("/folders"),
+                ]);
+                const items = await histResp.json();
+                const folders = await foldersResp.json();
+                const list = document.getElementById("history-list");
+
+                if (!items.length && !folders.length) {
+                    list.innerHTML = '<div class="history-empty">No translations yet</div>';
+                    return;
+                }
+
+                // Group entries by folder_id
+                const grouped = { null: [] };
+                folders.forEach(f => { grouped[f.id] = []; });
+                items.forEach(item => {
+                    const key = item.folder_id === null ? null : item.folder_id;
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(item);
+                });
+
+                const collapsedState = getCollapsedFolders();
+                let html = "";
+
+                // Unfiled section (always first, not draggable as a section)
+                html += renderFolderSection(null, "Unfiled", grouped[null] || [], collapsedState, false);
+
+                // Named folders by position
+                folders.forEach(f => {
+                    html += renderFolderSection(f.id, f.name, grouped[f.id] || [], collapsedState, true);
+                });
+
+                list.innerHTML = html;
+
+                // Attach event listeners
+                attachSidebarListeners();
+            } catch (e) {
+                console.error("Failed to load history:", e);
+            }
+        }
+
+        function renderFolderSection(folderId, name, entries, collapsedState, isDraggable) {
+            const key = folderId === null ? "unfiled" : `folder-${folderId}`;
+            const isCollapsed = collapsedState[key] || false;
+            const folderIdAttr = folderId !== null ? `data-folder-id="${folderId}"` : 'data-folder-id="null"';
+            const draggableAttr = isDraggable ? 'draggable="true"' : '';
+
+            let html = `<div class="history-folder-section" ${folderIdAttr} ${draggableAttr}>`;
+
+            // Folder header
+            const collapsedClass = isCollapsed ? " collapsed" : "";
+            html += `<div class="folder-header${collapsedClass}" data-folder-key="${key}">`;
+            html += `<span class="folder-chevron">&#9660;</span>`;
+            html += `<span class="folder-name">${escapeHtml(name)}</span>`;
+            html += `<span class="folder-count">${entries.length}</span>`;
+            if (folderId !== null) {
+                html += `<div class="folder-actions">`;
+                html += `<button class="folder-rename-btn" data-folder-id="${folderId}" title="Rename">&#9998;</button>`;
+                html += `<button class="folder-delete-btn" data-folder-id="${folderId}" title="Delete">&times;</button>`;
+                html += `</div>`;
+            }
+            html += `</div>`;
+
+            // Entries container
+            const hiddenClass = isCollapsed ? " hidden" : "";
+            html += `<div class="folder-entries${hiddenClass}" data-target-folder="${folderId}">`;
+            if (entries.length === 0) {
+                html += `<div class="folder-entries-empty">Drop items here</div>`;
+            } else {
+                entries.forEach(item => {
+                    const date = item.created_at.slice(0, 10);
+                    const displayName = item.title || item.preview || "(no text)";
+                    html += `<div class="history-entry" draggable="true" data-id="${item.id}">
+                        <div class="history-entry-preview">${escapeHtml(displayName)}</div>
+                        <div class="history-entry-meta">
+                            <span>${date}</span>
+                            <button class="entry-rename-btn" data-entry-id="${item.id}" title="Rename">&#9998;</button>
+                            <button class="history-delete-btn" data-entry-id="${item.id}" title="Delete">&times;</button>
+                        </div>
+                    </div>`;
+                });
+            }
+            html += `</div>`;
+            html += `</div>`;
+            return html;
+        }
+
+        function attachSidebarListeners() {
+            const list = document.getElementById("history-list");
+
+            // Click entry to load
+            list.querySelectorAll(".history-entry").forEach(el => {
+                el.addEventListener("click", (e) => {
+                    if (e.target.closest(".history-delete-btn") || e.target.closest(".entry-rename-btn")) return;
+                    loadHistoryEntry(parseInt(el.dataset.id));
+                });
+            });
+
+            // Rename entry buttons
+            list.querySelectorAll(".entry-rename-btn").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    renameEntry(parseInt(btn.dataset.entryId));
+                });
+            });
+
+            // Delete entry buttons
+            list.querySelectorAll(".history-delete-btn").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const id = parseInt(btn.dataset.entryId);
+                    deleteHistory(e, id);
+                });
+            });
+
+            // Folder collapse toggle
+            list.querySelectorAll(".folder-header").forEach(header => {
+                header.addEventListener("click", (e) => {
+                    if (e.target.closest(".folder-actions")) return;
+                    const key = header.dataset.folderKey;
+                    const isCollapsed = header.classList.toggle("collapsed");
+                    const entries = header.nextElementSibling;
+                    entries.classList.toggle("hidden", isCollapsed);
+                    setFolderCollapsed(key, isCollapsed);
+                });
+            });
+
+            // Rename folder
+            list.querySelectorAll(".folder-rename-btn").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    renameFolder(parseInt(btn.dataset.folderId));
+                });
+            });
+
+            // Delete folder
+            list.querySelectorAll(".folder-delete-btn").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    deleteFolderAction(parseInt(btn.dataset.folderId));
+                });
+            });
+
+            // Setup drag-and-drop
+            setupDragAndDrop();
+        }
+
+        // ---- Folder CRUD ----
+        async function createFolder() {
+            const name = prompt("Folder name:");
+            if (!name || !name.trim()) return;
+            await fetch("/folders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name.trim() }),
+            });
+            loadHistory();
+        }
+
+        async function renameFolder(id) {
+            const name = prompt("New folder name:");
+            if (!name || !name.trim()) return;
+            await fetch(`/folders/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name.trim() }),
+            });
+            loadHistory();
+        }
+
+        async function renameEntry(id) {
+            const name = prompt("Rename this translation:");
+            if (name === null) return;  // cancelled
+            await fetch(`/history/${id}/rename`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: name.trim() }),
+            });
+            loadHistory();
+        }
+
+        async function deleteFolderAction(id) {
+            if (!confirm("Delete this folder? Entries will be moved to Unfiled.")) return;
+            await fetch(`/folders/${id}`, { method: "DELETE" });
+            loadHistory();
+        }
+
+        // ---- Drag-and-Drop ----
+        function setupDragAndDrop() {
+            const list = document.getElementById("history-list");
+
+            // Entry drag
+            list.querySelectorAll(".history-entry[draggable]").forEach(el => {
+                el.addEventListener("dragstart", (e) => {
+                    e.dataTransfer.setData("application/entry-id", el.dataset.id);
+                    e.dataTransfer.effectAllowed = "move";
+                    el.classList.add("dragging");
+                    e.stopPropagation();
+                });
+                el.addEventListener("dragend", () => {
+                    el.classList.remove("dragging");
+                    clearDropFeedback();
+                });
+            });
+
+            // Folder section drag (reorder folders)
+            list.querySelectorAll(".history-folder-section[draggable]").forEach(el => {
+                el.addEventListener("dragstart", (e) => {
+                    if (e.target.closest(".history-entry")) return;
+                    e.dataTransfer.setData("application/folder-id", el.dataset.folderId);
+                    e.dataTransfer.effectAllowed = "move";
+                    el.classList.add("dragging");
+                });
+                el.addEventListener("dragend", () => {
+                    el.classList.remove("dragging");
+                    clearDropFeedback();
+                });
+            });
+
+            // Drop targets: folder headers
+            list.querySelectorAll(".folder-header").forEach(header => {
+                header.addEventListener("dragover", (e) => {
+                    if (e.dataTransfer.types.includes("application/entry-id")) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        clearDropFeedback();
+                        header.classList.add("drag-over");
+                    }
+                });
+                header.addEventListener("dragleave", () => {
+                    header.classList.remove("drag-over");
+                });
+                header.addEventListener("drop", async (e) => {
+                    e.preventDefault();
+                    header.classList.remove("drag-over");
+                    const entryId = e.dataTransfer.getData("application/entry-id");
+                    if (!entryId) return;
+                    const section = header.closest(".history-folder-section");
+                    const rawId = section.dataset.folderId;
+                    const folderId = rawId === "null" ? null : parseInt(rawId);
+                    await fetch(`/history/${entryId}/move`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ folder_id: folderId, position: 0 }),
+                    });
+                    loadHistory();
+                });
+            });
+
+            // Drop targets: folder entries areas (for position-specific drops)
+            list.querySelectorAll(".folder-entries").forEach(container => {
+                container.addEventListener("dragover", (e) => {
+                    if (!e.dataTransfer.types.includes("application/entry-id")) {
+                        // Check for folder reorder
+                        if (e.dataTransfer.types.includes("application/folder-id")) {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }
+                        return;
+                    }
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    clearDropFeedback();
+
+                    // Show drop indicator between entries
+                    const entries = [...container.querySelectorAll(".history-entry:not(.dragging)")];
+                    let insertBefore = null;
+                    for (const entry of entries) {
+                        const rect = entry.getBoundingClientRect();
+                        if (e.clientY < rect.top + rect.height / 2) {
+                            insertBefore = entry;
+                            break;
+                        }
+                    }
+                    const indicator = document.createElement("div");
+                    indicator.className = "drop-indicator";
+                    if (insertBefore) {
+                        container.insertBefore(indicator, insertBefore);
+                    } else {
+                        container.appendChild(indicator);
+                    }
+                });
+
+                container.addEventListener("dragleave", (e) => {
+                    if (!container.contains(e.relatedTarget)) {
+                        clearDropFeedback();
+                    }
+                });
+
+                container.addEventListener("drop", async (e) => {
+                    e.preventDefault();
+                    clearDropFeedback();
+                    const entryId = e.dataTransfer.getData("application/entry-id");
+                    if (!entryId) return;
+
+                    const rawFolderId = container.dataset.targetFolder;
+                    const folderId = rawFolderId === "null" ? null : parseInt(rawFolderId);
+
+                    // Calculate position based on mouse Y
+                    const entries = [...container.querySelectorAll(".history-entry:not(.dragging)")];
+                    let position = entries.length;
+                    for (let i = 0; i < entries.length; i++) {
+                        const rect = entries[i].getBoundingClientRect();
+                        if (e.clientY < rect.top + rect.height / 2) {
+                            position = i;
+                            break;
+                        }
+                    }
+
+                    await fetch(`/history/${entryId}/move`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ folder_id: folderId, position: position }),
+                    });
+                    loadHistory();
+                });
+            });
+
+            // Folder reorder: drop between folder sections
+            list.addEventListener("dragover", (e) => {
+                if (!e.dataTransfer.types.includes("application/folder-id")) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+            });
+
+            list.addEventListener("drop", async (e) => {
+                const draggedFolderId = e.dataTransfer.getData("application/folder-id");
+                if (!draggedFolderId) return;
+                e.preventDefault();
+                clearDropFeedback();
+
+                // Determine new order of folders
+                const sections = [...list.querySelectorAll(".history-folder-section[draggable]")];
+                const folderIds = sections.map(s => parseInt(s.dataset.folderId));
+
+                // Find insertion point
+                const draggedIdx = folderIds.indexOf(parseInt(draggedFolderId));
+                if (draggedIdx === -1) return;
+
+                let insertIdx = folderIds.length;
+                for (let i = 0; i < sections.length; i++) {
+                    if (sections[i].dataset.folderId === draggedFolderId) continue;
+                    const rect = sections[i].getBoundingClientRect();
+                    if (e.clientY < rect.top + rect.height / 2) {
+                        insertIdx = i;
+                        break;
+                    }
+                }
+
+                // Build new order
+                const newOrder = folderIds.filter(id => id !== parseInt(draggedFolderId));
+                const adjustedIdx = insertIdx > draggedIdx ? insertIdx - 1 : insertIdx;
+                newOrder.splice(adjustedIdx, 0, parseInt(draggedFolderId));
+
+                await fetch("/folders/reorder", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ order: newOrder }),
+                });
+                loadHistory();
+            });
+        }
+
+        function clearDropFeedback() {
+            document.querySelectorAll(".drag-over").forEach(el => el.classList.remove("drag-over"));
+            document.querySelectorAll(".drop-indicator").forEach(el => el.remove());
+        }
+
+        async function loadHistoryEntry(id) {
+            try {
+                const resp = await fetch(`/history/${id}`);
+                if (!resp.ok) return;
+                const entry = await resp.json();
+                currentHistoryId = entry.id;
+                document.getElementById("url-input").value = entry.url || "";
+                renderNumberedParagraphs(document.getElementById("chinese-panel"), entry.chinese_text);
+                renderNumberedParagraphs(document.getElementById("english-panel"), entry.english_text);
+                document.getElementById("summary-panel").textContent = entry.summary || "";
+                document.getElementById("summary-section").style.display = entry.summary ? "block" : "none";
+                document.getElementById("notes").value = entry.notes || "";
+
+                // Restore highlights
+                try {
+                    const hlData = JSON.parse(entry.highlights_json || "{}");
+                    if (hlData.chinese) {
+                        document.getElementById("chinese-panel").innerHTML = hlData.chinese;
+                    }
+                    if (hlData.english) {
+                        document.getElementById("english-panel").innerHTML = hlData.english;
+                    }
+                } catch (e) { /* ignore bad JSON */ }
+
+                document.getElementById("panels").style.display = "grid";
+                document.getElementById("notes-section").style.display = "block";
+                document.getElementById("export-section").style.display = "block";
+                updateHighlightCounts();
+
+                // Show and populate metadata card
+                document.getElementById("metadata-section").style.display = "block";
+                populateMetadataCard('', entry);
+
+                // Show source metadata panel
+                document.getElementById("source-section").style.display = "flex";
+                document.getElementById("source-select").value = entry.source_id || "";
+                updateSourceDetail();
+
+                // Show save-to-project panel
+                showSaveProjectPanel(entry.project_id);
+
+                // Show citation extractor (populated from metadata card)
+                document.getElementById("citation-section").style.display = "block";
+                updateCitationFromCard('qt', '');
+
+                // Highlight active entry in sidebar
+                document.querySelectorAll(".history-entry").forEach(el => {
+                    el.classList.toggle("active", parseInt(el.dataset.id) === id);
+                });
+            } catch (e) {
+                console.error("Failed to load entry:", e);
+            }
+        }
+
+        async function deleteHistory(e, id) {
+            e.stopPropagation();
+            if (!confirm("Delete this translation from history?")) return;
+            await fetch(`/history/${id}`, { method: "DELETE" });
+            if (currentHistoryId === id) currentHistoryId = null;
+            loadHistory();
+        }
+
+        function autoSave() {
+            if (!currentHistoryId) return;
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                const notes = document.getElementById("notes").value;
+                const highlights = {
+                    chinese: document.getElementById("chinese-panel").innerHTML,
+                    english: document.getElementById("english-panel").innerHTML,
+                };
+                await fetch(`/history/${currentHistoryId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        notes: notes,
+                        highlights_json: JSON.stringify(highlights),
+                    }),
+                });
+            }, 800);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderNumberedParagraphs(panel, text) {
+            const paragraphs = text.split(/\n+/).filter(p => p.trim());
+            panel.innerHTML = paragraphs.map((p, i) =>
+                `<div class="numbered-para"><span class="para-num">${i + 1}</span>${escapeHtml(p)}</div>`
+            ).join("");
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById("history-sidebar");
+            const reopenBtn = document.getElementById("sidebar-reopen");
+            sidebar.classList.toggle("collapsed");
+            reopenBtn.classList.toggle("visible", sidebar.classList.contains("collapsed"));
+        }
+        document.getElementById("history-toggle").addEventListener("click", toggleSidebar);
+        document.getElementById("sidebar-reopen").addEventListener("click", toggleSidebar);
+
+        // Add folder button
+        document.getElementById("add-folder-btn").addEventListener("click", createFolder);
+
+        // Auto-save notes on change
+        document.getElementById("notes").addEventListener("input", autoSave);
+
+        // Load sources cache on page load
+        fetchSourcesCache();
+        // Update unfiled badge on landing
+        updateUnfiledBadge();
+
+        // ---- Sources Management ----
+        async function fetchSourcesCache() {
+            try {
+                const resp = await fetch("/sources");
+                sourcesCache = await resp.json();
+                populateSourceSelect();
+            } catch (e) {
+                console.error("Failed to fetch sources:", e);
+            }
+        }
+
+        function populateSourceSelect() {
+            const sel = document.getElementById("source-select");
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- Select source --</option>';
+            sourcesCache.forEach(s => {
+                const opt = document.createElement("option");
+                opt.value = s.id;
+                opt.textContent = s.name;
+                sel.appendChild(opt);
+            });
+            sel.value = currentVal;
+        }
+
+        async function loadSources() {
+            try {
+                const resp = await fetch("/sources");
+                sourcesCache = await resp.json();
+                populateSourceSelect();
+                const tbody = document.getElementById("sources-tbody");
+                const emptyMsg = document.getElementById("sources-empty");
+
+                if (!sourcesCache.length) {
+                    tbody.innerHTML = "";
+                    emptyMsg.style.display = "block";
+                    return;
+                }
+                emptyMsg.style.display = "none";
+
+                tbody.innerHTML = sourcesCache.map(s => `
+                    <tr data-source-id="${s.id}">
+                        <td>${escapeHtml(s.name)}</td>
+                        <td>${escapeHtml(s.type)}</td>
+                        <td>${escapeHtml(s.credibility_tier)}</td>
+                        <td>${escapeHtml(s.language)}</td>
+                        <td>${escapeHtml(s.notes)}</td>
+                        <td>${s.article_count}</td>
+                        <td class="source-actions">
+                            <button onclick="editSource(${s.id})" title="Edit">&#9998;</button>
+                            <button onclick="deleteSource(${s.id})" title="Delete">&times;</button>
+                        </td>
+                    </tr>
+                `).join("");
+            } catch (e) {
+                console.error("Failed to load sources:", e);
+            }
+        }
+
+        async function addSource() {
+            const name = document.getElementById("source-name").value.trim();
+            if (!name) { alert("Publication name is required."); return; }
+            await fetch("/sources", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: name,
+                    type: document.getElementById("source-type").value,
+                    credibility_tier: document.getElementById("source-credibility").value,
+                    language: document.getElementById("source-language").value,
+                    notes: document.getElementById("source-notes").value.trim(),
+                }),
+            });
+            document.getElementById("source-name").value = "";
+            document.getElementById("source-type").value = "";
+            document.getElementById("source-credibility").value = "";
+            document.getElementById("source-language").value = "";
+            document.getElementById("source-notes").value = "";
+            loadSources();
+        }
+
+        function editSource(id) {
+            const row = document.querySelector(`tr[data-source-id="${id}"]`);
+            if (!row) return;
+            const s = sourcesCache.find(x => x.id === id);
+            if (!s) return;
+            const typeOptions = ["", "State Media", "Independent", "Commercial", "Wire Service", "Academic", "Government", "Other"];
+            const credOptions = ["", "High", "Medium", "Low", "Unknown"];
+            const langOptions = ["", "Chinese", "English", "Bilingual", "Other"];
+
+            function makeSelect(options, current) {
+                return `<select>${options.map(o => `<option value="${o}"${o === current ? " selected" : ""}>${o || "..."}</option>`).join("")}</select>`;
+            }
+
+            row.innerHTML = `
+                <td><input type="text" value="${escapeHtml(s.name)}"></td>
+                <td>${makeSelect(typeOptions, s.type)}</td>
+                <td>${makeSelect(credOptions, s.credibility_tier)}</td>
+                <td>${makeSelect(langOptions, s.language)}</td>
+                <td><input type="text" value="${escapeHtml(s.notes)}"></td>
+                <td>${s.article_count}</td>
+                <td class="source-actions">
+                    <button onclick="saveSource(${id})" title="Save">&#10003;</button>
+                    <button onclick="loadSources()" title="Cancel">&#10007;</button>
+                </td>
+            `;
+        }
+
+        async function saveSource(id) {
+            const row = document.querySelector(`tr[data-source-id="${id}"]`);
+            if (!row) return;
+            const inputs = row.querySelectorAll("input");
+            const selects = row.querySelectorAll("select");
+            await fetch(`/sources/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: inputs[0].value.trim(),
+                    type: selects[0].value,
+                    credibility_tier: selects[1].value,
+                    language: selects[2].value,
+                    notes: inputs[1].value.trim(),
+                }),
+            });
+            loadSources();
+        }
+
+        async function deleteSource(id) {
+            if (!confirm("Delete this source? Linked articles will be unlinked.")) return;
+            await fetch(`/sources/${id}`, { method: "DELETE" });
+            loadSources();
+        }
+
+        // ---- Source Metadata on Articles ----
+        document.getElementById("source-select").addEventListener("change", async function() {
+            if (!currentHistoryId) return;
+            const sourceId = this.value ? parseInt(this.value) : null;
+            await fetch(`/history/${currentHistoryId}/source`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ source_id: sourceId }),
+            });
+            updateSourceDetail();
+        });
+
+        function updateSourceDetail() {
+            const sel = document.getElementById("source-select");
+            const detail = document.getElementById("source-detail");
+            const sourceId = parseInt(sel.value);
+            if (!sourceId) { detail.textContent = ""; return; }
+            const s = sourcesCache.find(x => x.id === sourceId);
+            if (!s) { detail.textContent = ""; return; }
+            const parts = [];
+            if (s.type) parts.push(s.type);
+            if (s.credibility_tier) parts.push(s.credibility_tier + " credibility");
+            detail.textContent = parts.length ? parts.join(" | ") : "";
+        }
+
+        function autoMatchSource(url) {
+            if (!url || !sourcesCache.length) return null;
+            try {
+                const hostname = new URL(url).hostname.toLowerCase();
+                for (const s of sourcesCache) {
+                    const nameLower = s.name.toLowerCase().replace(/\s+/g, "");
+                    if (hostname.includes(nameLower) || nameLower.includes(hostname.replace(/^www\./, "").split(".")[0])) {
+                        return s.id;
+                    }
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        // ---- Save to Project ----
+        async function fetchProjectsCache() {
+            try {
+                const resp = await fetch('/projects');
+                projectsCache = await resp.json();
+            } catch (e) {
+                console.error('Failed to fetch projects:', e);
+            }
+        }
+
+        function populateProjectSelect(currentProjectId) {
+            const sel = document.getElementById('project-select');
+            sel.innerHTML = '<option value="">-- Not saved --</option><option value="0">Unfiled</option>';
+            projectsCache.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.project_name || p.client_name_en || p.client_name_cn || `Project #${p.id}`;
+                sel.appendChild(opt);
+            });
+            if (currentProjectId !== null && currentProjectId !== undefined) {
+                sel.value = currentProjectId;
+            }
+        }
+
+        async function showSaveProjectPanel(projectId) {
+            await fetchProjectsCache();
+            populateProjectSelect(projectId);
+            document.getElementById('save-project-section').style.display = 'flex';
+            document.getElementById('project-status').textContent = '';
+        }
+
+        document.getElementById('project-select').addEventListener('change', async function() {
+            if (!currentHistoryId) return;
+            const val = this.value;
+            const projectId = val === '' ? null : parseInt(val);
+            const statusEl = document.getElementById('project-status');
+            try {
+                await fetch(`/history/${currentHistoryId}/project`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_id: projectId }),
+                });
+                if (projectId === null) {
+                    statusEl.textContent = 'Removed from projects';
+                } else if (projectId === 0) {
+                    statusEl.textContent = 'Saved to Unfiled';
+                } else {
+                    const p = projectsCache.find(x => x.id === projectId);
+                    statusEl.textContent = `Saved to ${p ? (p.project_name || p.client_name_en || 'project') : 'project'}`;
+                }
+                statusEl.classList.add('flash');
+                setTimeout(() => statusEl.classList.remove('flash'), 1500);
+            } catch (e) {
+                statusEl.textContent = 'Error saving';
+            }
+        });
+
+        // ---- Translation ----
+        async function translateText() {
+            const url = document.getElementById("url-input").value.trim();
+            const text = document.getElementById("text-input").value.trim();
+            const errorMsg = document.getElementById("error-msg");
+            const spinner = document.getElementById("spinner");
+            const btn = document.getElementById("translate-btn");
+
+            errorMsg.style.display = "none";
+
+            if (!url && !text) {
+                errorMsg.textContent = "Please enter a URL or paste Chinese text.";
+                errorMsg.style.display = "block";
+                return;
+            }
+
+            // Duplicate URL detection
+            if (url) {
+                try {
+                    const dupResp = await fetch(`/history/check-url?url=${encodeURIComponent(url)}`);
+                    const dupData = await dupResp.json();
+                    if (dupData.exists) {
+                        const label = dupData.title || url;
+                        const date = dupData.created_at ? dupData.created_at.slice(0, 10) : '';
+                        const loadExisting = confirm(`This URL was already translated${date ? ' on ' + date : ''}:\n"${label}"\n\nLoad the existing translation instead?\n(Cancel to translate again)`);
+                        if (loadExisting) {
+                            loadHistoryEntry(dupData.id);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    // Non-blocking — proceed with translation if check fails
+                }
+            }
+
+            btn.disabled = true;
+            spinner.classList.add("active");
+
+            try {
+                const payload = JSON.stringify({ url: url, text: text });
+                console.log("Sending:", payload);
+
+                const resp = await fetch("/translate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: payload,
+                });
+
+                const raw = await resp.text();
+                console.log("Response:", resp.status, raw);
+
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch (e) {
+                    throw new Error("Server returned invalid response. Check console.");
+                }
+
+                if (!resp.ok) {
+                    throw new Error(data.error || "Translation failed.");
+                }
+
+                currentHistoryId = data.id || null;
+                renderNumberedParagraphs(document.getElementById("chinese-panel"), data.chinese);
+                renderNumberedParagraphs(document.getElementById("english-panel"), data.english);
+                document.getElementById("summary-panel").textContent = data.summary || "";
+                document.getElementById("summary-section").style.display = data.summary ? "block" : "none";
+                document.getElementById("notes").value = "";
+                document.getElementById("panels").style.display = "grid";
+                document.getElementById("notes-section").style.display = "block";
+                document.getElementById("export-section").style.display = "block";
+                updateHighlightCounts();
+
+                // Show and populate metadata card
+                document.getElementById("metadata-section").style.display = "block";
+                populateMetadataFromTranslation('', data, url);
+
+                // Show source metadata and auto-match
+                document.getElementById("source-section").style.display = "flex";
+                document.getElementById("source-select").value = "";
+                const matchedSourceId = autoMatchSource(url);
+                if (matchedSourceId && currentHistoryId) {
+                    document.getElementById("source-select").value = matchedSourceId;
+                    updateSourceDetail();
+                    fetch(`/history/${currentHistoryId}/source`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ source_id: matchedSourceId }),
+                    });
+                } else {
+                    document.getElementById("source-detail").textContent = "";
+                }
+
+                // Show save-to-project panel
+                showSaveProjectPanel(data.project_id);
+
+                // Show citation extractor (populated from metadata card)
+                document.getElementById("citation-section").style.display = "block";
+                updateCitationFromCard('qt', '');
+
+                loadHistory();
+
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = "block";
+            } finally {
+                btn.disabled = false;
+                spinner.classList.remove("active");
+            }
+        }
+
+        // ---- Highlighting ----
+        const toolbar = document.getElementById("highlight-toolbar");
+        let savedRange = null;
+        let activePanel = null;
+
+        // Show toolbar when user selects text inside a panel
+        document.addEventListener("mouseup", function(e) {
+            // Small delay so the selection is finalized
+            setTimeout(() => {
+                const sel = window.getSelection();
+                if (!sel || sel.isCollapsed || !sel.rangeCount) {
+                    hideToolbar();
+                    return;
+                }
+
+                const range = sel.getRangeAt(0);
+                const panel = range.commonAncestorContainer.nodeType === 1
+                    ? range.commonAncestorContainer.closest(".panel-body")
+                    : range.commonAncestorContainer.parentElement.closest(".panel-body");
+
+                if (!panel || (panel.id !== "chinese-panel" && panel.id !== "english-panel")) {
+                    hideToolbar();
+                    return;
+                }
+
+                savedRange = range;
+                activePanel = panel;
+
+                // Position toolbar above the selection
+                const rect = range.getBoundingClientRect();
+                toolbar.style.left = (rect.left + rect.width / 2 - 80) + "px";
+                toolbar.style.top = (rect.top + window.scrollY - 44) + "px";
+                toolbar.classList.add("active");
+            }, 10);
+        });
+
+        // Hide toolbar on click outside
+        document.addEventListener("mousedown", function(e) {
+            if (!toolbar.contains(e.target)) {
+                hideToolbar();
+            }
+        });
+
+        function hideToolbar() {
+            toolbar.classList.remove("active");
+            savedRange = null;
+            activePanel = null;
+        }
+
+        // Color buttons
+        toolbar.querySelectorAll(".color-btn").forEach(btn => {
+            btn.addEventListener("mousedown", function(e) {
+                e.preventDefault(); // Prevent losing selection
+            });
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                const color = this.dataset.color;
+                applyHighlight(color);
+            });
+        });
+
+        // Remove highlight button
+        toolbar.querySelector(".remove-btn").addEventListener("mousedown", function(e) {
+            e.preventDefault();
+        });
+        toolbar.querySelector(".remove-btn").addEventListener("click", function(e) {
+            e.preventDefault();
+            removeHighlight();
+        });
+
+        function applyHighlight(color) {
+            if (!savedRange) return;
+
+            const span = document.createElement("mark");
+            span.className = "highlight-" + color;
+
+            try {
+                savedRange.surroundContents(span);
+            } catch (err) {
+                // If selection spans multiple elements, extract and wrap
+                const fragment = savedRange.extractContents();
+                span.appendChild(fragment);
+                savedRange.insertNode(span);
+            }
+
+            window.getSelection().removeAllRanges();
+            hideToolbar();
+            updateHighlightCounts();
+            autoSave();
+        }
+
+        function removeHighlight() {
+            if (!savedRange || !activePanel) return;
+
+            // Find any highlight marks that overlap the selection
+            const marks = activePanel.querySelectorAll("mark");
+            marks.forEach(mark => {
+                if (savedRange.intersectsNode(mark)) {
+                    const parent = mark.parentNode;
+                    while (mark.firstChild) {
+                        parent.insertBefore(mark.firstChild, mark);
+                    }
+                    parent.removeChild(mark);
+                    parent.normalize();
+                }
+            });
+
+            window.getSelection().removeAllRanges();
+            hideToolbar();
+            updateHighlightCounts();
+            autoSave();
+        }
+
+        function updateHighlightCounts() {
+            const chCount = document.getElementById("chinese-panel").querySelectorAll("mark").length;
+            const enCount = document.getElementById("english-panel").querySelectorAll("mark").length;
+            document.getElementById("chinese-hl-count").textContent = chCount ? chCount + " highlight" + (chCount > 1 ? "s" : "") : "";
+            document.getElementById("english-hl-count").textContent = enCount ? enCount + " highlight" + (enCount > 1 ? "s" : "") : "";
+        }
+
+        // ---- Collect highlights for export ----
+        function collectHighlights(panelId) {
+            const marks = document.getElementById(panelId).querySelectorAll("mark");
+            const items = [];
+            marks.forEach(m => {
+                const color = (m.className.replace("highlight-", "") || "unknown");
+                items.push("[" + color.toUpperCase() + "] " + m.textContent);
+            });
+            return items;
+        }
+
+        // ---- Export ----
+        function exportReport() {
+            const chinese = extractParagraphs("chinese-panel");
+            const english = extractParagraphs("english-panel");
+            const summary = document.getElementById("summary-panel").textContent;
+            const notes = document.getElementById("notes").value;
+            const url = document.getElementById("url-input").value.trim();
+            const title = document.getElementById("meta-title-en").value.trim()
+                || document.getElementById("meta-title-cn").value.trim()
+                || '';
+
+            const chHighlights = collectHighlights("chinese-panel");
+            const enHighlights = collectHighlights("english-panel");
+
+            const reportTitle = title ? `${title} Report` : 'Research Report';
+            let report = "=== " + reportTitle.toUpperCase() + " ===\n";
+            report += "Date: " + new Date().toISOString().slice(0, 10) + "\n";
+            if (url) {
+                report += "Source URL: " + url + "\n";
+            }
+
+            if (summary.trim()) {
+                report += "\n--- EXECUTIVE SUMMARY ---\n\n" + summary;
+            }
+
+            report += "\n\n--- ORIGINAL CHINESE ---\n\n" + chinese;
+            report += "\n\n--- ENGLISH TRANSLATION ---\n\n" + english;
+
+            if (chHighlights.length || enHighlights.length) {
+                report += "\n\n--- HIGHLIGHTS ---\n";
+                if (chHighlights.length) {
+                    report += "\nChinese:\n" + chHighlights.map(h => "  - " + h).join("\n");
+                }
+                if (enHighlights.length) {
+                    report += "\nEnglish:\n" + enHighlights.map(h => "  - " + h).join("\n");
+                }
+            }
+
+            if (notes.trim()) {
+                report += "\n\n--- RESEARCH NOTES ---\n\n" + notes;
+            }
+
+            const citText = document.getElementById('citation-text').textContent;
+            if (citText.trim()) {
+                report += "\n\n--- CITATION ---\n\n" + citText;
+            }
+            report += "\n\n=== END OF REPORT ===\n";
+
+            const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            const txtName = title ? title.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '-').slice(0, 60) + '-report' : 'research-report-' + new Date().toISOString().slice(0, 10);
+            a.download = txtName + ".txt";
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        // ---- PDF Export ----
+        function extractParagraphs(panelId) {
+            const panel = document.getElementById(panelId);
+            const paras = panel.querySelectorAll('.numbered-para');
+            if (paras.length > 0) {
+                return Array.from(paras).map(p => {
+                    // Clone node, remove the para-num span, get remaining text
+                    const clone = p.cloneNode(true);
+                    const numSpan = clone.querySelector('.para-num');
+                    if (numSpan) numSpan.remove();
+                    return clone.textContent.trim();
+                }).filter(t => t).join('\n\n');
+            }
+            return panel.textContent;
+        }
+
+        async function exportPDF() {
+            const chinese = extractParagraphs("chinese-panel");
+            const english = extractParagraphs("english-panel");
+            const notes = document.getElementById("notes").value;
+            const url = document.getElementById("url-input").value.trim();
+            const title = document.getElementById("meta-title-en").value.trim()
+                || document.getElementById("meta-title-cn").value.trim()
+                || '';
+
+            const chHighlights = collectHighlights("chinese-panel");
+            const enHighlights = collectHighlights("english-panel");
+            const allHighlights = [
+                ...chHighlights.map(h => ({ ...parseHighlight(h), source: "chinese" })),
+                ...enHighlights.map(h => ({ ...parseHighlight(h), source: "english" })),
+            ];
+
+            try {
+                const resp = await fetch("/export-pdf", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chinese, english, summary: document.getElementById("summary-panel").textContent, notes, url, highlights: allHighlights, citation: document.getElementById('citation-text').textContent || '', title }),
+                });
+                if (!resp.ok) throw new Error("PDF generation failed");
+                const blob = await resp.blob();
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                const fileName = title ? title.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '-').slice(0, 60) + '-report' : 'research-report-' + new Date().toISOString().slice(0, 10);
+                a.download = fileName + ".pdf";
+                a.click();
+                URL.revokeObjectURL(a.href);
+            } catch (e) {
+                alert("PDF export failed: " + e.message);
+            }
+        }
+
+        function parseHighlight(str) {
+            const match = str.match(/^\[(\w+)\]\s*(.*)/s);
+            if (match) return { color: match[1].toLowerCase(), text: match[2] };
+            return { color: "yellow", text: str };
+        }
+
+        // ======== ARTICLE METADATA CARD ========
+        let metadataSaveTimeout = null;
+
+        function populateMetadataCard(prefix, entry) {
+            // prefix: '' for quick-translate, 'pa-' for project article
+            const p = prefix;
+            document.getElementById(p + 'meta-title-cn').value = entry.title || '';
+            document.getElementById(p + 'meta-title-en').value = entry.article_title_en || '';
+            document.getElementById(p + 'meta-source-cn').value = entry.scraped_source_name || '';
+            document.getElementById(p + 'meta-source-en').value = entry.source_name_en || '';
+            document.getElementById(p + 'meta-pub-date').value = entry.pub_date || '';
+            document.getElementById(p + 'meta-author').value = entry.author || '';
+            document.getElementById(p + 'meta-url').value = entry.url || '';
+        }
+
+        function populateMetadataFromTranslation(prefix, data, url) {
+            const p = prefix;
+            document.getElementById(p + 'meta-title-cn').value = data.title || '';
+            document.getElementById(p + 'meta-title-en').value = '';
+            document.getElementById(p + 'meta-source-cn').value = data.source_name || '';
+            document.getElementById(p + 'meta-source-en').value = '';
+            document.getElementById(p + 'meta-pub-date').value = data.pub_date || '';
+            document.getElementById(p + 'meta-author').value = data.author || '';
+            document.getElementById(p + 'meta-url').value = url || '';
+        }
+
+        function getMetadataFromCard(prefix) {
+            const p = prefix;
+            return {
+                title: document.getElementById(p + 'meta-title-cn').value.trim(),
+                article_title_en: document.getElementById(p + 'meta-title-en').value.trim(),
+                scraped_source_name: document.getElementById(p + 'meta-source-cn').value.trim(),
+                source_name_en: document.getElementById(p + 'meta-source-en').value.trim(),
+                pub_date: document.getElementById(p + 'meta-pub-date').value.trim(),
+                author: document.getElementById(p + 'meta-author').value.trim(),
+                url: document.getElementById(p + 'meta-url').value.trim(),
+            };
+        }
+
+        function autoSaveMetadata(entryId, prefix) {
+            clearTimeout(metadataSaveTimeout);
+            metadataSaveTimeout = setTimeout(async () => {
+                if (!entryId) return;
+                const meta = getMetadataFromCard(prefix);
+                await fetch(`/history/${entryId}/metadata`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(meta),
+                });
+                // Also refresh citation from the updated card values
+                updateCitationFromCard(prefix === 'pa-' ? 'pa' : 'qt', prefix);
+                // Refresh sidebar title if changed
+                if (prefix === '') loadHistory();
+            }, 600);
+        }
+
+        function updateCitationFromCard(context, prefix) {
+            const meta = getMetadataFromCard(prefix);
+            citationData[context] = {
+                title: meta.article_title_en || meta.title || '',
+                sourceName: meta.source_name_en || meta.scraped_source_name || '',
+                date: meta.pub_date || '',
+                url: meta.url || '',
+                author: meta.author || '',
+            };
+            renderCitation(context);
+        }
+
+        function clearMetaField(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            input.value = '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function clearDropdown(selectId) {
+            const sel = document.getElementById(selectId);
+            if (!sel) return;
+            sel.value = '';
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // Attach change listeners to Quick Translate metadata card
+        document.getElementById('metadata-section').querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', () => {
+                autoSaveMetadata(currentHistoryId, '');
+            });
+            input.addEventListener('change', () => {
+                autoSaveMetadata(currentHistoryId, '');
+            });
+        });
+
+        // Attach change listeners to Project Article metadata card
+        document.getElementById('pa-metadata-section').querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', () => {
+                autoSaveMetadata(currentArticleDetailId, 'pa-');
+            });
+            input.addEventListener('change', () => {
+                autoSaveMetadata(currentArticleDetailId, 'pa-');
+            });
+        });
+
+        // ======== CITATIONS ========
+        let currentCitationStyle = localStorage.getItem('citationDefaultStyle') || 'inline';
+
+        // Citation data holders per context: qt = quick translate, pa = project article
+        let citationData = { qt: {}, pa: {} };
+
+        function buildCitation(style, data) {
+            const pub = data.sourceName || 'Unknown Source';
+            const title = data.title || '(Untitled Article)';
+            const date = data.date || 'n.d.';
+            const url = data.url || '';
+            const today = new Date().toISOString().slice(0, 10);
+
+            switch (style) {
+                case 'inline':
+                    return `Source: ${pub}, "${title}", ${date}.` + (url ? `\nAvailable at: ${url}` : '');
+                case 'footnote':
+                    return `"${title}," ${pub} (Chinese), ${date}` + (url ? `, ${url}` : '') + ` [Accessed: ${today}]`;
+                case 'short':
+                    return `${pub} (CN), ${date} — "${title}"` + (url ? `\n${url}` : '');
+                default:
+                    return '';
+            }
+        }
+
+        function renderCitation(context) {
+            const data = citationData[context];
+            if (!data || !data.date) return;
+            const style = currentCitationStyle;
+            const textEl = document.getElementById(context === 'qt' ? 'citation-text' : 'pa-citation-text');
+            textEl.textContent = buildCitation(style, data);
+
+            // Update active tab
+            const section = context === 'qt' ? document.getElementById('citation-section') : document.getElementById('pa-citation-section');
+            section.querySelectorAll('.citation-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.style === style);
+            });
+        }
+
+        function setCitationStyle(style, context) {
+            currentCitationStyle = style;
+            renderCitation(context);
+        }
+
+        function setDefaultCitationStyle() {
+            localStorage.setItem('citationDefaultStyle', currentCitationStyle);
+            // Brief visual feedback
+            const btns = document.querySelectorAll('.citation-default-btn');
+            btns.forEach(b => {
+                const orig = b.textContent;
+                b.textContent = 'Saved!';
+                setTimeout(() => b.textContent = orig, 1200);
+            });
+        }
+
+        async function copyCitation(context) {
+            const textEl = document.getElementById(context === 'qt' ? 'citation-text' : 'pa-citation-text');
+            const text = textEl.textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                const section = context === 'qt' ? document.getElementById('citation-section') : document.getElementById('pa-citation-section');
+                const btn = section.querySelector('.citation-copy-btn');
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = orig, 1200);
+            } catch (e) {
+                // Fallback
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+        }
+
+        function populateCitationData(context, entry) {
+            const sourceId = entry.source_id;
+            const source = sourceId ? sourcesCache.find(s => s.id === sourceId) : null;
+            // Prefer scraped source name, fall back to sources library, then empty
+            const sourceName = entry.scraped_source_name || (source ? source.name : '') || '';
+            // Prefer pub_date (actual publication date), fall back to created_at
+            const date = entry.pub_date || (entry.created_at ? entry.created_at.slice(0, 10) : '');
+            citationData[context] = {
+                title: entry.title || '',
+                sourceName: sourceName,
+                date: date,
+                url: entry.url || '',
+            };
+            renderCitation(context);
+        }
+
+        // Get formatted citation string for a given entry (used in PDF export)
+        function getCitationForExport(entry) {
+            const sourceId = entry.source_id;
+            const source = sourceId ? sourcesCache.find(s => s.id === sourceId) : null;
+            const data = {
+                title: entry.title || '',
+                sourceName: source ? source.name : 'Unknown Source',
+                date: entry.created_at ? entry.created_at.slice(0, 10) : 'n.d.',
+                url: entry.url || '',
+            };
+            return buildCitation(currentCitationStyle, data);
+        }
+
+        // ======== PROJECTS ========
+
+        // ---- Projects List ----
+        async function loadProjects() {
+            try {
+                const resp = await fetch('/projects');
+                projectsCache = await resp.json();
+                const grid = document.getElementById('projects-grid');
+
+                if (!projectsCache.length) {
+                    grid.innerHTML = '<div class="projects-empty">No projects yet. Click "+ New Project" to get started.</div>';
+                    return;
+                }
+
+                grid.innerHTML = projectsCache.map(p => {
+                    const statusClass = getStatusClass(p.status);
+                    let dueBadge = '';
+                    if (p.due_by) {
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        const due = new Date(p.due_by + 'T00:00:00');
+                        const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+                        let countdown = '';
+                        if (diffDays < 0) countdown = `<span class="due-countdown overdue">${Math.abs(diffDays)} day(s) overdue</span>`;
+                        else if (diffDays === 0) countdown = `<span class="due-countdown due-today">Due today</span>`;
+                        else countdown = `<span class="due-countdown">${diffDays} day(s) left</span>`;
+                        dueBadge = `<span class="project-card-due">Due ${escapeHtml(p.due_by)}</span>${countdown}`;
+                    }
+                    return `<div class="project-card" onclick="navigateTo('project-detail', {projectId: ${p.id}})">
+                        <div class="project-card-header">
+                            <span class="project-card-name">${escapeHtml(p.project_name || p.client_name_en || p.client_name_cn || 'Untitled')}</span>
+                            <span class="project-status-badge ${statusClass}">${escapeHtml(p.status)}</span>
+                        </div>
+                        ${p.client_name_en ? `<div class="project-card-cn">${escapeHtml(p.client_name_en)}${p.client_name_cn ? ' / ' + escapeHtml(p.client_name_cn) : ''}</div>` : (p.client_name_cn ? `<div class="project-card-cn">${escapeHtml(p.client_name_cn)}</div>` : '')}
+                        ${p.industry ? `<div class="project-card-industry">${escapeHtml(p.industry)}</div>` : ''}
+                        <div class="project-card-footer">
+                            <span>${p.article_count} article${p.article_count !== 1 ? 's' : ''}</span>
+                            ${dueBadge}
+                            <span>${p.created_at.slice(0, 10)}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load projects:', e);
+            }
+        }
+
+        // ---- Unfiled Articles ----
+        let unfiledCollapsed = false;
+
+        function toggleUnfiled() {
+            unfiledCollapsed = !unfiledCollapsed;
+            document.getElementById('unfiled-list').style.display = unfiledCollapsed ? 'none' : 'block';
+            document.getElementById('unfiled-chevron').style.transform = unfiledCollapsed ? 'rotate(-90deg)' : '';
+        }
+
+        async function loadUnfiled() {
+            try {
+                const resp = await fetch('/unfiled');
+                const items = await resp.json();
+                const list = document.getElementById('unfiled-list');
+                const countEl = document.getElementById('unfiled-count');
+                countEl.textContent = items.length;
+
+                if (!items.length) {
+                    list.innerHTML = '<div class="unfiled-empty">No unfiled articles</div>';
+                    return;
+                }
+
+                await fetchProjectsCache();
+
+                list.innerHTML = items.map(item => {
+                    const title = item.title || item.preview || '(untitled)';
+                    const date = item.created_at.slice(0, 10);
+                    let projectOptions = '<option value="">Assign to project...</option>';
+                    projectsCache.forEach(p => {
+                        projectOptions += `<option value="${p.id}">${escapeHtml(p.project_name || p.client_name_en || p.client_name_cn || 'Project #' + p.id)}</option>`;
+                    });
+                    return `<div class="unfiled-item">
+                        <div class="unfiled-item-info">
+                            <span class="unfiled-item-title">${escapeHtml(title)}</span>
+                            <span class="unfiled-item-date">${date}</span>
+                        </div>
+                        <select class="unfiled-assign-select" onchange="assignUnfiledToProject(${item.id}, this.value)">
+                            ${projectOptions}
+                        </select>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                console.error('Failed to load unfiled:', e);
+            }
+        }
+
+        async function assignUnfiledToProject(entryId, projectId) {
+            if (!projectId) return;
+            await fetch(`/history/${entryId}/project`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: parseInt(projectId) }),
+            });
+            loadUnfiled();
+            loadProjects();
+        }
+
+        // ---- Create Project ----
+        async function createProject() {
+            const projectName = prompt('Project name:');
+            if (!projectName) return;
+            const nameEn = prompt('Client name (English, optional):') || '';
+            const nameCn = prompt('Client name (Chinese, optional):') || '';
+            const industry = prompt('Industry (optional):') || '';
+
+            await fetch('/projects', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    project_name: projectName.trim(),
+                    client_name_en: nameEn.trim(),
+                    client_name_cn: nameCn.trim(),
+                    industry: industry.trim(),
+                }),
+            });
+            loadProjects();
+        }
+
+        // ---- Project Detail ----
+        async function loadProjectDetail(id) {
+            try {
+                const [projResp, artResp] = await Promise.all([
+                    fetch(`/projects/${id}`),
+                    fetch(`/projects/${id}/articles`),
+                ]);
+                const project = await projResp.json();
+                const articles = await artResp.json();
+
+                // Reset article detail view if open
+                currentArticleDetailId = null;
+                document.getElementById('project-article-detail').style.display = 'none';
+                document.getElementById('client-profile').style.display = '';
+                document.querySelector('.project-translate-input').style.display = '';
+
+                // Reset article search
+                const searchInput = document.getElementById('project-article-search');
+                if (searchInput) searchInput.value = '';
+
+                // Client profile — inline editable
+                const profile = document.getElementById('client-profile');
+                const statusClass = getStatusClass(project.status);
+                profile.innerHTML = `
+                    <div class="profile-header">
+                        <h2 class="profile-editable-title" onclick="editProfileField(this, 'project_name')" title="Click to edit">${escapeHtml(project.project_name || 'Untitled Project')}</h2>
+                        <span class="project-status-badge ${statusClass} clickable-status" onclick="cycleProjectStatus()" title="Click to change status">${escapeHtml(project.status)}</span>
+                    </div>
+                    <div class="profile-field profile-cn" onclick="editProfileField(this, 'client_name_en')" title="Click to edit">
+                        <span class="profile-field-label">Client:</span> ${project.client_name_en ? escapeHtml(project.client_name_en) : '<span class="field-placeholder">+ Client name (EN)</span>'}
+                        ${project.client_name_en ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'client_name_en\')" title="Clear field">&#128465;</button>' : ''}
+                    </div>
+                    <div class="profile-field profile-cn" onclick="editProfileField(this, 'client_name_cn')" title="Click to edit">
+                        ${project.client_name_cn ? escapeHtml(project.client_name_cn) : '<span class="field-placeholder">+ Client name (CN)</span>'}
+                        ${project.client_name_cn ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'client_name_cn\')" title="Clear field">&#128465;</button>' : ''}
+                    </div>
+                    <div class="profile-field profile-industry" onclick="editProfileField(this, 'industry')" title="Click to edit">
+                        ${project.industry ? escapeHtml(project.industry) : '<span class="field-placeholder">+ Industry</span>'}
+                        ${project.industry ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'industry\')" title="Clear field">&#128465;</button>' : ''}
+                    </div>
+                    <div class="profile-row">
+                        <div class="profile-field profile-due" onclick="editProfileDateField(this, 'due_by')" title="Click to edit">
+                            <span class="profile-field-label">Due by:</span> ${project.due_by ? escapeHtml(project.due_by) : '<span class="field-placeholder">Not set</span>'}
+                            ${project.due_by ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'due_by\')" title="Clear field">&#128465;</button>' : ''}
+                        </div>
+                    </div>
+                    <div class="profile-field profile-notes-field" onclick="editProfileField(this, 'notes')" title="Click to edit">
+                        ${project.notes ? escapeHtml(project.notes) : '<span class="field-placeholder">+ Notes</span>'}
+                        ${project.notes ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'notes\')" title="Clear field">&#128465;</button>' : ''}
+                    </div>
+                `;
+
+                // Timeline
+                buildTimeline(articles);
+
+                // Entities
+                const hasSummaries = articles.some(a => a.summary);
+                const entSection = document.getElementById('project-entities-section');
+                if (hasSummaries) {
+                    entSection.style.display = '';
+                    loadProjectEntities(currentProjectId);
+                } else {
+                    entSection.style.display = 'none';
+                }
+
+                // Articles
+                renderProjectArticles(articles);
+
+            } catch (e) {
+                console.error('Failed to load project detail:', e);
+            }
+        }
+
+        async function loadProjectEntities(projectId) {
+            const container = document.getElementById('project-entities');
+            container.innerHTML = '<div class="entities-loading">Extracting entities...</div>';
+            try {
+                const resp = await fetch(`/projects/${projectId}/entities`);
+                if (!resp.ok) throw new Error('Failed');
+                const entities = await resp.json();
+                if (!entities.length) {
+                    container.innerHTML = '<div class="entities-empty">No entities found</div>';
+                    return;
+                }
+                const typeIcons = { person: '\u{1F464}', company: '\u{1F3E2}', organization: '\u{1F3DB}', government: '\u{1F3DB}', location: '\u{1F4CD}', regulation: '\u{1F4DC}', other: '\u{1F539}' };
+                container.innerHTML = entities.map(e => {
+                    const icon = typeIcons[e.type] || typeIcons.other;
+                    const barWidth = Math.min(100, (e.count / entities[0].count) * 100);
+                    return `<div class="entity-row">
+                        <div class="entity-bar" style="width:${barWidth}%"></div>
+                        <span class="entity-icon">${icon}</span>
+                        <span class="entity-name">${escapeHtml(e.entity)}</span>
+                        <span class="entity-type">${escapeHtml(e.type)}</span>
+                        <span class="entity-count">${e.count}</span>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                console.error('Entity extraction failed:', e);
+                container.innerHTML = '<div class="entities-empty">Failed to extract entities</div>';
+            }
+        }
+
+        function buildTimeline(articles) {
+            const section = document.getElementById('project-timeline-section');
+            const container = document.getElementById('project-timeline');
+            if (!articles.length) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+
+            // Sort chronologically by pub_date (fallback to created_at)
+            const sorted = [...articles].sort((a, b) => {
+                const da = (a.pub_date || a.created_at || '').slice(0, 10);
+                const db = (b.pub_date || b.created_at || '').slice(0, 10);
+                return da.localeCompare(db);
+            });
+            container.innerHTML = sorted.map(a => {
+                const title = a.title || a.preview || '(untitled)';
+                const date = (a.pub_date || a.created_at || '').slice(0, 10);
+                const summaryPreview = (a.summary || '').split('\n')[0].slice(0, 100);
+                return `<div class="timeline-item" data-article-id="${a.id}"
+                    onmouseenter="highlightArticleCard(${a.id}, true)"
+                    onmouseleave="highlightArticleCard(${a.id}, false)">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-date">${date}</div>
+                        <div class="timeline-title">${escapeHtml(title)}</div>
+                        ${summaryPreview ? `<div class="timeline-summary">${escapeHtml(summaryPreview)}</div>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function getCredibilityColor(tier) {
+            switch ((tier || '').toLowerCase()) {
+                case 'high': return '#16a34a';
+                case 'medium': return '#d97706';
+                case 'low': return '#dc2626';
+                default: return '#9ca3af';
+            }
+        }
+
+        function renderProjectArticles(articles) {
+            const section = document.getElementById('project-articles-section');
+            const container = document.getElementById('project-articles');
+            const countLabel = document.getElementById('project-article-count');
+
+            if (!articles.length) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+            countLabel.textContent = `(${articles.length})`;
+
+            container.innerHTML = articles.map(a => {
+                const title = a.title || a.preview || '(untitled)';
+                const date = a.created_at.slice(0, 10);
+                const summaryExcerpt = (a.summary || '').slice(0, 200);
+                const source = sourcesCache.find(s => s.id === a.source_id);
+                let sourceBadge = '';
+                if (source) {
+                    const color = getCredibilityColor(source.credibility_tier);
+                    sourceBadge = `<span class="source-badge" style="border-color:${color};color:${color}">${escapeHtml(source.name)}</span>`;
+                }
+                return `<div class="project-article-card clickable" data-article-id="${a.id}" onclick="openArticleDetail(${a.id})">
+                    <div class="project-article-header">
+                        <span class="project-article-title">${escapeHtml(title)}</span>
+                        <button class="btn-remove-article" onclick="event.stopPropagation(); removeArticleFromProject(${a.id})" title="Remove from project">&times;</button>
+                    </div>
+                    <div class="project-article-meta">
+                        <span>${date}</span>
+                        ${sourceBadge}
+                        ${a.highlight_count ? `<span class="hl-badge">${a.highlight_count} highlight${a.highlight_count > 1 ? 's' : ''}</span>` : ''}
+                    </div>
+                    ${summaryExcerpt ? `<div class="project-article-summary">${escapeHtml(summaryExcerpt)}${a.summary && a.summary.length > 200 ? '...' : ''}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function filterProjectArticles(query) {
+            const cards = document.querySelectorAll('#project-articles .project-article-card');
+            const q = query.toLowerCase().trim();
+            cards.forEach(card => {
+                if (!q) {
+                    card.style.display = '';
+                    return;
+                }
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(q) ? '' : 'none';
+            });
+        }
+
+        // ---- Article Detail within Project ----
+        function highlightArticleCard(articleId, on) {
+            const card = document.querySelector(`.project-article-card[data-article-id="${articleId}"]`);
+            if (!card) return;
+            if (on) {
+                card.classList.add('timeline-highlight');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                card.classList.remove('timeline-highlight');
+            }
+        }
+
+        async function openArticleDetail(entryId) {
+            try {
+                const resp = await fetch(`/history/${entryId}`);
+                if (!resp.ok) return;
+                const entry = await resp.json();
+                currentArticleDetailId = entryId;
+
+                // Hide the main project sections, show detail
+                document.getElementById('client-profile').style.display = 'none';
+                document.querySelector('.project-translate-input').style.display = 'none';
+                document.getElementById('project-timeline-section').style.display = 'none';
+                document.getElementById('project-articles-section').style.display = 'none';
+                document.getElementById('project-article-detail').style.display = 'block';
+
+                // Meta line (URL + date)
+                const metaEl = document.getElementById('pa-meta');
+                const metaParts = [];
+                if (entry.url) metaParts.push(`<a href="${escapeHtml(entry.url)}" target="_blank" rel="noopener">${escapeHtml(entry.url)}</a>`);
+                if (entry.created_at) metaParts.push(entry.created_at.slice(0, 10));
+                metaEl.innerHTML = metaParts.join(' &middot; ');
+
+                // Summary
+                const summarySection = document.getElementById('pa-summary-section');
+                const summaryPanel = document.getElementById('pa-summary-panel');
+                if (entry.summary) {
+                    summaryPanel.textContent = entry.summary;
+                    summarySection.style.display = 'block';
+                } else {
+                    summarySection.style.display = 'none';
+                }
+
+                // Source
+                const sourceSection = document.getElementById('pa-source-section');
+                const sourceDetail = document.getElementById('pa-source-detail');
+                if (entry.source_id) {
+                    const s = sourcesCache.find(x => x.id === entry.source_id);
+                    if (s) {
+                        const parts = [s.name];
+                        if (s.type) parts.push(s.type);
+                        if (s.credibility_tier) parts.push(s.credibility_tier + ' credibility');
+                        sourceDetail.textContent = parts.join(' | ');
+                        sourceSection.style.display = 'flex';
+                    } else {
+                        sourceSection.style.display = 'none';
+                    }
+                } else {
+                    sourceSection.style.display = 'none';
+                }
+
+                // Chinese + English panels
+                const chPanel = document.getElementById('pa-chinese-panel');
+                const enPanel = document.getElementById('pa-english-panel');
+                renderNumberedParagraphs(chPanel, entry.chinese_text);
+                renderNumberedParagraphs(enPanel, entry.english_text);
+
+                // Restore highlights if saved
+                try {
+                    const hlData = JSON.parse(entry.highlights_json || '{}');
+                    if (hlData.chinese) chPanel.innerHTML = hlData.chinese;
+                    if (hlData.english) enPanel.innerHTML = hlData.english;
+                } catch (e) {}
+
+                // Highlight counts
+                const chCount = chPanel.querySelectorAll('mark').length;
+                const enCount = enPanel.querySelectorAll('mark').length;
+                document.getElementById('pa-chinese-hl-count').textContent = chCount ? chCount + ' highlight' + (chCount > 1 ? 's' : '') : '';
+                document.getElementById('pa-english-hl-count').textContent = enCount ? enCount + ' highlight' + (enCount > 1 ? 's' : '') : '';
+
+                // Notes
+                const notesSection = document.getElementById('pa-notes-section');
+                const notesEl = document.getElementById('pa-notes');
+                if (entry.notes && entry.notes.trim()) {
+                    notesEl.textContent = entry.notes;
+                    notesSection.style.display = 'block';
+                } else {
+                    notesSection.style.display = 'none';
+                }
+
+                // Populate metadata card
+                populateMetadataCard('pa-', entry);
+
+                // Citation extractor (populated from metadata card)
+                updateCitationFromCard('pa', 'pa-');
+
+                // Scroll to top
+                document.getElementById('project-article-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+                console.error('Failed to load article detail:', e);
+            }
+        }
+
+        function closeArticleDetail() {
+            currentArticleDetailId = null;
+            document.getElementById('project-article-detail').style.display = 'none';
+            // Re-show the project sections
+            document.getElementById('client-profile').style.display = '';
+            document.querySelector('.project-translate-input').style.display = '';
+            // Re-load to restore timeline + articles visibility
+            if (currentProjectId) loadProjectDetail(currentProjectId);
+        }
+
+        // ---- Translate within Project ----
+        async function translateInProject() {
+            if (!currentProjectId) return;
+            const url = document.getElementById('project-url-input').value.trim();
+            const text = document.getElementById('project-text-input').value.trim();
+            const spinner = document.getElementById('project-spinner');
+
+            if (!url && !text) {
+                alert('Please provide a URL or text.');
+                return;
+            }
+
+            // Duplicate URL detection
+            if (url) {
+                try {
+                    const dupResp = await fetch(`/history/check-url?url=${encodeURIComponent(url)}`);
+                    const dupData = await dupResp.json();
+                    if (dupData.exists) {
+                        const label = dupData.title || url;
+                        const date = dupData.created_at ? dupData.created_at.slice(0, 10) : '';
+                        if (!confirm(`This URL was already translated${date ? ' on ' + date : ''}:\n"${label}"\n\nTranslate again anyway?`)) {
+                            return;
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            spinner.classList.add('active');
+            try {
+                const resp = await fetch('/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, text, project_id: currentProjectId }),
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.error || 'Translation failed');
+
+                document.getElementById('project-url-input').value = '';
+                document.getElementById('project-text-input').value = '';
+                loadProjectDetail(currentProjectId);
+            } catch (e) {
+                alert('Translation failed: ' + e.message);
+            } finally {
+                spinner.classList.remove('active');
+            }
+        }
+
+        // ---- Inline Edit Project Fields ----
+        function getStatusClass(status) {
+            switch ((status || '').toLowerCase()) {
+                case 'active': return 'status-active';
+                case 'paused': return 'status-paused';
+                case 'finished': return 'status-finished';
+                default: return 'status-active';
+            }
+        }
+
+        function editProfileField(el, field) {
+            if (el.querySelector('input, textarea')) return; // already editing
+            const currentText = el.querySelector('.field-placeholder') ? '' : el.textContent.trim();
+            const isNotes = field === 'notes';
+
+            if (isNotes) {
+                const textarea = document.createElement('textarea');
+                textarea.className = 'profile-inline-input profile-inline-textarea';
+                textarea.value = currentText;
+                textarea.placeholder = field === 'notes' ? 'Add notes...' : '';
+                el.innerHTML = '';
+                el.appendChild(textarea);
+                textarea.focus();
+                textarea.addEventListener('blur', () => saveProfileField(el, field, textarea.value));
+                textarea.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); textarea.blur(); }
+                    if (e.key === 'Escape') { textarea.blur(); }
+                });
+            } else {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'profile-inline-input';
+                input.value = currentText;
+                const placeholders = { project_name: 'Project name', client_name_en: 'Client name (EN)', client_name_cn: 'Client name (CN)', industry: 'Industry' };
+                input.placeholder = placeholders[field] || '';
+                el.innerHTML = '';
+                el.appendChild(input);
+                input.focus();
+                input.addEventListener('blur', () => saveProfileField(el, field, input.value));
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') input.blur();
+                    if (e.key === 'Escape') input.blur();
+                });
+            }
+        }
+
+        function editProfileDateField(el, field) {
+            if (el.querySelector('input')) return;
+            const label = el.querySelector('.profile-field-label');
+            const currentVal = el.textContent.replace('Due by:', '').trim();
+            const dateVal = (currentVal && currentVal !== 'Not set') ? currentVal : '';
+
+            const input = document.createElement('input');
+            input.type = 'date';
+            input.className = 'profile-inline-input profile-date-input';
+            input.value = dateVal;
+            el.innerHTML = '';
+            if (label) el.appendChild(label.cloneNode(true));
+            el.appendChild(input);
+            input.focus();
+            input.addEventListener('blur', () => saveProfileField(el, field, input.value));
+            input.addEventListener('change', () => input.blur());
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') input.blur();
+            });
+        }
+
+        async function saveProfileField(el, field, value) {
+            if (!currentProjectId) return;
+            const trimmed = value.trim();
+            try {
+                await fetch(`/projects/${currentProjectId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [field]: trimmed }),
+                });
+                loadProjectDetail(currentProjectId);
+            } catch (e) {
+                console.error('Failed to save field:', e);
+            }
+        }
+
+        async function clearProfileField(field) {
+            if (!currentProjectId) return;
+            try {
+                await fetch(`/projects/${currentProjectId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [field]: '' }),
+                });
+                loadProjectDetail(currentProjectId);
+            } catch (e) {
+                console.error('Failed to clear field:', e);
+            }
+        }
+
+        const STATUS_CYCLE = ['Active', 'Paused', 'Finished'];
+        async function cycleProjectStatus() {
+            if (!currentProjectId) return;
+            try {
+                const resp = await fetch(`/projects/${currentProjectId}`);
+                const project = await resp.json();
+                const currentIdx = STATUS_CYCLE.indexOf(project.status);
+                const nextStatus = STATUS_CYCLE[(currentIdx + 1) % STATUS_CYCLE.length];
+                await fetch(`/projects/${currentProjectId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: nextStatus }),
+                });
+                loadProjectDetail(currentProjectId);
+            } catch (e) {
+                console.error('Failed to cycle status:', e);
+            }
+        }
+
+        // ---- Delete Project ----
+        async function deleteProject() {
+            if (!currentProjectId) return;
+            if (!confirm('Delete this project? Articles will be moved to Unfiled.')) return;
+            await fetch(`/projects/${currentProjectId}`, { method: 'DELETE' });
+            navigateTo('projects');
+        }
+
+        // ---- Remove Article from Project ----
+        async function removeArticleFromProject(entryId) {
+            if (!confirm('Remove this article from the project? It will be moved to Unfiled.')) return;
+            await fetch(`/history/${entryId}/project`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: 0 }),
+            });
+            if (currentProjectId) {
+                loadProjectDetail(currentProjectId);
+            }
+        }
+
+        // ---- Export Project PDF ----
+        async function exportProjectPDF() {
+            if (!currentProjectId) return;
+            try {
+                const resp = await fetch(`/projects/${currentProjectId}/export-pdf`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ citation_style: currentCitationStyle }),
+                });
+                if (!resp.ok) throw new Error('PDF generation failed');
+                const blob = await resp.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `project-report-${currentProjectId}-${new Date().toISOString().slice(0, 10)}.pdf`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            } catch (e) {
+                alert('PDF export failed: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

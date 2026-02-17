@@ -1,0 +1,6 @@
+flask
+python-dotenv
+openai
+requests
+beautifulsoup4
+fpdf2
