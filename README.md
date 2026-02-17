@@ -1,8 +1,6 @@
 # My CN Researcher (v1.0)
 
-A Chinese media research and translation tool built for corporate due diligence workflows. Translates Chinese articles, extracts metadata, organizes research into projects, and exports PDF reports — all wrapped in a Windows XP retro aesthetic.
-
-*Because copy-pasting into ChatGPT won't cut it in corporate.*
+A Chinese media research and translation tool. Translates Chinese articles into English, extracts article metadata, organizes research into projects, and exports PDF reports — all wrapped in a Windows XP retro aesthetic.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue) ![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey) ![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-green)
 
