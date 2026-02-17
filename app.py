@@ -1516,4 +1516,7 @@ def export_pdf():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    import webbrowser, threading, os
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        threading.Timer(1.5, lambda: webbrowser.open("http://127.0.0.1:5001")).start()
+    app.run(debug=True, port=5001)
