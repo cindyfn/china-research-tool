@@ -261,7 +261,7 @@
                         <span class="save-project-label">Save to Project:</span>
                         <select id="project-select">
                             <option value="">-- Not saved --</option>
-                            <option value="0">Unfiled</option>
+                            <option value="unfiled">Unfiled</option>
                         </select>
                         <button class="meta-clear-btn dropdown-clear-btn" onclick="clearDropdown('project-select')" title="Clear">&#128465;</button>
                         <span class="save-project-status" id="project-status"></span>
@@ -1340,7 +1340,7 @@
 
         function populateProjectSelect(currentProjectId) {
             const sel = document.getElementById('project-select');
-            sel.innerHTML = '<option value="">-- Not saved --</option><option value="0">Unfiled</option>';
+            sel.innerHTML = '<option value="">-- Not saved --</option><option value="unfiled">Unfiled</option>';
             projectsCache.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.id;
@@ -1362,7 +1362,7 @@
         document.getElementById('project-select').addEventListener('change', async function() {
             if (!currentHistoryId) return;
             const val = this.value;
-            const projectId = val === '' ? null : parseInt(val);
+            const projectId = (val === '' || val === 'unfiled') ? null : parseInt(val);
             const statusEl = document.getElementById('project-status');
             try {
                 await fetch(`/history/${currentHistoryId}/project`, {
@@ -1370,9 +1370,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ project_id: projectId }),
                 });
-                if (projectId === null) {
+                if (val === '') {
                     statusEl.textContent = 'Removed from projects';
-                } else if (projectId === 0) {
+                } else if (val === 'unfiled') {
                     statusEl.textContent = 'Saved to Unfiled';
                 } else {
                     const p = projectsCache.find(x => x.id === projectId);
@@ -1516,7 +1516,8 @@
                     ? range.commonAncestorContainer.closest(".panel-body")
                     : range.commonAncestorContainer.parentElement.closest(".panel-body");
 
-                if (!panel || (panel.id !== "chinese-panel" && panel.id !== "english-panel")) {
+                const validPanels = ["chinese-panel", "english-panel", "pa-chinese-panel", "pa-english-panel"];
+                if (!panel || !validPanels.includes(panel.id)) {
                     hideToolbar();
                     return;
                 }
@@ -1582,9 +1583,15 @@
             }
 
             window.getSelection().removeAllRanges();
+            const isProjectPanel = activePanel && activePanel.id.startsWith('pa-');
             hideToolbar();
-            updateHighlightCounts();
-            autoSave();
+            if (isProjectPanel) {
+                updateProjectHighlightCounts();
+                autoSaveProjectArticle();
+            } else {
+                updateHighlightCounts();
+                autoSave();
+            }
         }
 
         function removeHighlight() {
@@ -1604,9 +1611,42 @@
             });
 
             window.getSelection().removeAllRanges();
+            const isProjectPanel = activePanel && activePanel.id.startsWith('pa-');
             hideToolbar();
-            updateHighlightCounts();
-            autoSave();
+            if (isProjectPanel) {
+                updateProjectHighlightCounts();
+                autoSaveProjectArticle();
+            } else {
+                updateHighlightCounts();
+                autoSave();
+            }
+        }
+
+        function updateProjectHighlightCounts() {
+            const chCount = document.getElementById("pa-chinese-panel").querySelectorAll("mark").length;
+            const enCount = document.getElementById("pa-english-panel").querySelectorAll("mark").length;
+            document.getElementById("pa-chinese-hl-count").textContent = chCount ? chCount + " highlight" + (chCount > 1 ? "s" : "") : "";
+            document.getElementById("pa-english-hl-count").textContent = enCount ? enCount + " highlight" + (enCount > 1 ? "s" : "") : "";
+        }
+
+        function autoSaveProjectArticle() {
+            if (!currentArticleDetailId) return;
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                const notes = document.getElementById("pa-notes") ? document.getElementById("pa-notes").textContent : "";
+                const highlights = {
+                    chinese: document.getElementById("pa-chinese-panel").innerHTML,
+                    english: document.getElementById("pa-english-panel").innerHTML,
+                };
+                await fetch(`/history/${currentArticleDetailId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        notes: notes,
+                        highlights_json: JSON.stringify(highlights),
+                    }),
+                });
+            }, 800);
         }
 
         function updateHighlightCounts() {
@@ -1870,7 +1910,7 @@
 
         function renderCitation(context) {
             const data = citationData[context];
-            if (!data || !data.date) return;
+            if (!data) return;
             const style = currentCitationStyle;
             const textEl = document.getElementById(context === 'qt' ? 'citation-text' : 'pa-citation-text');
             textEl.textContent = buildCitation(style, data);
@@ -1917,35 +1957,6 @@
                 document.execCommand('copy');
                 document.body.removeChild(ta);
             }
-        }
-
-        function populateCitationData(context, entry) {
-            const sourceId = entry.source_id;
-            const source = sourceId ? sourcesCache.find(s => s.id === sourceId) : null;
-            // Prefer scraped source name, fall back to sources library, then empty
-            const sourceName = entry.scraped_source_name || (source ? source.name : '') || '';
-            // Prefer pub_date (actual publication date), fall back to created_at
-            const date = entry.pub_date || (entry.created_at ? entry.created_at.slice(0, 10) : '');
-            citationData[context] = {
-                title: entry.title || '',
-                sourceName: sourceName,
-                date: date,
-                url: entry.url || '',
-            };
-            renderCitation(context);
-        }
-
-        // Get formatted citation string for a given entry (used in PDF export)
-        function getCitationForExport(entry) {
-            const sourceId = entry.source_id;
-            const source = sourceId ? sourcesCache.find(s => s.id === sourceId) : null;
-            const data = {
-                title: entry.title || '',
-                sourceName: source ? source.name : 'Unknown Source',
-                date: entry.created_at ? entry.created_at.slice(0, 10) : 'n.d.',
-                url: entry.url || '',
-            };
-            return buildCitation(currentCitationStyle, data);
         }
 
         // ======== PROJECTS ========
@@ -2596,8 +2607,9 @@
             await fetch(`/history/${entryId}/project`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ project_id: 0 }),
+                body: JSON.stringify({ project_id: null }),
             });
+            closeArticleDetail();
             if (currentProjectId) {
                 loadProjectDetail(currentProjectId);
             }

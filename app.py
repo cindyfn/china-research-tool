@@ -972,7 +972,7 @@ def projects_list():
     ).fetchall()
     counts = {}
     for row in conn.execute(
-        "SELECT project_id, COUNT(*) as cnt FROM history WHERE project_id IS NOT NULL AND project_id > 0 GROUP BY project_id"
+        "SELECT project_id, COUNT(*) as cnt FROM history WHERE project_id IS NOT NULL GROUP BY project_id"
     ).fetchall():
         counts[row["project_id"]] = row["cnt"]
     conn.close()
@@ -1058,8 +1058,8 @@ def project_update(project_id):
 @app.route("/projects/<int:project_id>", methods=["DELETE"])
 def project_delete(project_id):
     conn = get_db()
-    # Move linked articles to unfiled (project_id = 0)
-    conn.execute("UPDATE history SET project_id = 0 WHERE project_id = ?", (project_id,))
+    # Move linked articles to unfiled
+    conn.execute("UPDATE history SET project_id = NULL WHERE project_id = ?", (project_id,))
     conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
     conn.commit()
     conn.close()
@@ -1156,7 +1156,7 @@ def history_set_project(entry_id):
 def unfiled_articles():
     conn = get_db()
     rows = conn.execute(
-        "SELECT id, url, chinese_text, title, summary, created_at FROM history WHERE project_id IS NULL OR project_id = 0 ORDER BY created_at DESC"
+        "SELECT id, url, chinese_text, title, summary, created_at FROM history WHERE project_id IS NULL ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
     return jsonify([{
@@ -1205,7 +1205,7 @@ def project_export_pdf(project_id):
         return jsonify({"error": "Not found"}), 404
 
     articles = conn.execute(
-        "SELECT id, url, title, summary, source_id, pub_date, created_at FROM history WHERE project_id = ? ORDER BY created_at",
+        "SELECT id, url, title, summary, source_id, scraped_source_name, pub_date, created_at FROM history WHERE project_id = ? ORDER BY created_at",
         (project_id,),
     ).fetchall()
 
@@ -1322,11 +1322,14 @@ def project_export_pdf(project_id):
             source_name = ""
             if a["source_id"] and a["source_id"] in sources:
                 source_name = sources[a["source_id"]]["name"]
+            if not source_name:
+                source_name = a["scraped_source_name"] or ""
+            cite_date = (a["pub_date"] or a["created_at"] or "")[:10]
             cit = _build_citation(
                 citation_style,
                 a["title"] or "",
                 source_name,
-                a["created_at"][:10] if a["created_at"] else "",
+                cite_date,
                 a["url"] or "",
             )
             pdf.ln(2)
