@@ -1156,7 +1156,7 @@ def history_set_project(entry_id):
 def unfiled_articles():
     conn = get_db()
     rows = conn.execute(
-        "SELECT id, url, chinese_text, title, summary, created_at FROM history WHERE project_id = 0 ORDER BY created_at DESC"
+        "SELECT id, url, chinese_text, title, summary, created_at FROM history WHERE project_id IS NULL OR project_id = 0 ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
     return jsonify([{
