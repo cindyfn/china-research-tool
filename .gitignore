@@ -5,3 +5,4 @@ venv/
 *.db
 .claude/
 .DS_Store
+*.command
