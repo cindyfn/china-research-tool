@@ -1338,7 +1338,10 @@ def project_export_pdf(project_id):
             pdf.multi_cell(0, PDF_LINE_H_SMALL, cit)
             pdf.ln(4)
 
-    buf = BytesIO(pdf.output())
+    try:
+        buf = BytesIO(pdf.output())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     buf.seek(0)
     return send_file(
         buf,
@@ -1349,12 +1352,18 @@ def project_export_pdf(project_id):
 
 
 def _find_cjk_font():
-    """Find a CJK-capable TTF font on macOS."""
+    """Find a CJK-capable TTF font on macOS or Windows."""
     candidates = [
+        # macOS
         "/System/Library/Fonts/PingFang.ttc",
         "/System/Library/Fonts/STHeiti Light.ttc",
         "/System/Library/Fonts/Hiragino Sans GB.ttc",
         "/Library/Fonts/Arial Unicode.ttf",
+        # Windows
+        "C:/Windows/Fonts/msyh.ttc",       # Microsoft YaHei
+        "C:/Windows/Fonts/simsun.ttc",     # SimSun
+        "C:/Windows/Fonts/simhei.ttf",     # SimHei
+        "C:/Windows/Fonts/mingliu.ttc",    # MingLiU
     ]
     for path in candidates:
         if os.path.exists(path):
@@ -1503,7 +1512,10 @@ def export_pdf():
         _pdf_set_font(pdf, cjk_font, "", 10, citation)
         pdf.multi_cell(0, PDF_LINE_H, citation, fill=True)
 
-    buf = BytesIO(pdf.output())
+    try:
+        buf = BytesIO(pdf.output())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     buf.seek(0)
     return send_file(
         buf,
