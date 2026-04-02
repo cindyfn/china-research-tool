@@ -82,6 +82,11 @@ def init_db():
         "ALTER TABLE history ADD COLUMN pub_date TEXT DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN due_by TEXT DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN project_name TEXT DEFAULT ''",
+        "ALTER TABLE projects ADD COLUMN report_type TEXT DEFAULT ''",
+        "ALTER TABLE projects ADD COLUMN risk_synthesis TEXT DEFAULT ''",
+        "ALTER TABLE projects ADD COLUMN risk_synthesis_updated_at TEXT DEFAULT ''",
+        "ALTER TABLE history ADD COLUMN risk_categories TEXT DEFAULT ''",
+        "ALTER TABLE history ADD COLUMN risk_note TEXT DEFAULT ''",
         "ALTER TABLE history ADD COLUMN article_title_en TEXT DEFAULT ''",
         "ALTER TABLE history ADD COLUMN source_name_en TEXT DEFAULT ''",
         "ALTER TABLE history ADD COLUMN author TEXT DEFAULT ''",
@@ -96,6 +101,28 @@ def init_db():
 
 
 init_db()
+
+RISK_CATEGORIES = [
+    # Financial Crime
+    {"key": "fraud",             "label": "Fraud",                                  "group": "Financial Crime"},
+    {"key": "money_laundering",  "label": "Money Laundering",                       "group": "Financial Crime"},
+    {"key": "bribery_corruption","label": "Bribery & Corruption",                   "group": "Financial Crime"},
+    {"key": "tax_accounting",    "label": "Tax & Accounting Irregularities",         "group": "Financial Crime"},
+    # Legal & Regulatory
+    {"key": "regulatory",        "label": "Regulatory Breaches & Restrictions",     "group": "Legal & Regulatory"},
+    {"key": "litigation",        "label": "Litigation",                             "group": "Legal & Regulatory"},
+    {"key": "anti_competitive",  "label": "Anti-Competitive Practices",             "group": "Legal & Regulatory"},
+    # Serious Crime
+    {"key": "terrorism",         "label": "Terrorism",                              "group": "Serious Crime"},
+    {"key": "organised_crime",   "label": "Organised Crime",                        "group": "Serious Crime"},
+    # Conduct & Ethics
+    {"key": "conflict_of_interest","label": "Conflict of Interest",                 "group": "Conduct & Ethics"},
+    {"key": "esg",               "label": "ESG Issues",                             "group": "Conduct & Ethics"},
+    # Reputation
+    {"key": "reputational",      "label": "Reputational Issues",                    "group": "Reputation"},
+    {"key": "business_reputation","label": "Business Reputation Issues",            "group": "Reputation"},
+]
+RISK_CATEGORY_KEYS = [c["key"] for c in RISK_CATEGORIES]
 
 client = OpenAI(
     api_key=os.getenv("DEEPSEEK_API_KEY"),
@@ -527,6 +554,56 @@ def generate_summary(english_text):
     return response.choices[0].message.content
 
 
+def categorize_article(subject_name, article_title, summary):
+    """Categorize a single article against the risk categories for a given subject."""
+    category_list = "\n".join(f"- {c['key']}: {c['label']}" for c in RISK_CATEGORIES)
+    prompt = (
+        f"You are a compliance analyst conducting an adverse media review on the subject: \"{subject_name}\".\n\n"
+        f"Article title: {article_title}\n\n"
+        f"Article summary:\n{summary}\n\n"
+        f"From the list below, identify which risk categories this article raises in relation to the subject. "
+        f"Only flag a category if the article contains clear evidence or allegations relevant to the subject.\n\n"
+        f"Categories:\n{category_list}\n\n"
+        f"Respond in this exact JSON format (no markdown, no extra text):\n"
+        f'{{"categories": ["key1", "key2"], "note": "One sentence explaining how this article relates to {subject_name}."}}\n\n'
+        f"If no categories apply, return: {{\"categories\": [], \"note\": \"No adverse findings relevant to {subject_name}.\"}}"
+    )
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+    )
+    raw = response.choices[0].message.content.strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {"categories": [], "note": ""}
+
+
+def generate_risk_synthesis(subject_name, articles):
+    """Generate a 2-3 sentence adverse media synthesis across all categorized articles."""
+    if not articles:
+        return ""
+    lines = []
+    for a in articles:
+        cats = json.loads(a["risk_categories"] or "[]")
+        cat_labels = [c["label"] for c in RISK_CATEGORIES if c["key"] in cats]
+        lines.append(f"- {a['title'] or 'Untitled'}: {', '.join(cat_labels) if cat_labels else 'No adverse findings'} — {a['risk_note'] or ''}")
+    articles_text = "\n".join(lines)
+    prompt = (
+        f"You are a compliance analyst. Based on the following adverse media findings for subject \"{subject_name}\", "
+        f"write a concise 2-3 sentence synthesis summarising the key risk themes identified. "
+        f"Be factual and specific about what was found. If no adverse findings were identified, state that clearly.\n\n"
+        f"Articles:\n{articles_text}"
+    )
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2,
+    )
+    return response.choices[0].message.content.strip()
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -629,6 +706,26 @@ def translate():
         )
         history_id = cur.lastrowid
         conn.commit()
+
+        # Auto-categorize if article belongs to a project
+        risk_cats = []
+        risk_note = ""
+        if project_id:
+            project_row = conn.execute("SELECT project_name, client_name_cn FROM projects WHERE id = ?", (project_id,)).fetchone()
+            subject = (project_row["client_name_cn"] or project_row["project_name"]) if project_row else ""
+            if subject and summary:
+                try:
+                    result = categorize_article(subject, article_title, summary)
+                    risk_cats = result.get("categories", [])
+                    risk_note = result.get("note", "")
+                    conn.execute(
+                        "UPDATE history SET risk_categories = ?, risk_note = ? WHERE id = ?",
+                        (json.dumps(risk_cats), risk_note, history_id),
+                    )
+                    conn.commit()
+                except Exception:
+                    pass
+
         conn.close()
 
         return jsonify({
@@ -995,12 +1092,11 @@ def project_create():
     data = request.get_json(force=True, silent=True) or {}
     conn = get_db()
     cur = conn.execute(
-        "INSERT INTO projects (project_name, client_name_cn, client_name_en, industry, status, notes, due_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO projects (project_name, client_name_en, report_type, status, notes, due_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         (
             (data.get("project_name") or "").strip(),
-            (data.get("client_name_cn") or "").strip(),
             (data.get("client_name_en") or "").strip(),
-            (data.get("industry") or "").strip(),
+            (data.get("report_type") or "").strip(),
             (data.get("status") or "Active").strip(),
             (data.get("notes") or "").strip(),
             (data.get("due_by") or "").strip(),
@@ -1095,6 +1191,102 @@ def project_articles(project_id):
             "created_at": r["created_at"],
         })
     return jsonify(items)
+
+
+@app.route("/projects/<int:project_id>/risk-summary")
+def project_risk_summary(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT project_name, client_name_cn, risk_synthesis, risk_synthesis_updated_at FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+    articles = conn.execute(
+        "SELECT id, title, risk_categories, risk_note FROM history WHERE project_id = ? ORDER BY created_at",
+        (project_id,),
+    ).fetchall()
+    conn.close()
+
+    # Build per-category article lists
+    category_map = {c["key"]: {"label": c["label"], "group": c["group"], "articles": []} for c in RISK_CATEGORIES}
+    uncategorized = []
+    for a in articles:
+        cats = json.loads(a["risk_categories"] or "[]")
+        if not cats and a["risk_categories"] == "":
+            uncategorized.append({"id": a["id"], "title": a["title"] or "Untitled"})
+        for key in cats:
+            if key in category_map:
+                category_map[key]["articles"].append({"id": a["id"], "title": a["title"] or "Untitled"})
+
+    return jsonify({
+        "subject": project["project_name"] or "",
+        "synthesis": project["risk_synthesis"] or "",
+        "synthesis_updated_at": project["risk_synthesis_updated_at"] or "",
+        "categories": category_map,
+        "uncategorized_count": len(uncategorized),
+        "uncategorized": uncategorized,
+    })
+
+
+@app.route("/projects/<int:project_id>/categorize-all", methods=["POST"])
+def project_categorize_all(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT project_name, client_name_cn FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+    subject = project["client_name_cn"] or project["project_name"] or ""
+    articles = conn.execute(
+        "SELECT id, title, summary FROM history WHERE project_id = ? AND (risk_categories IS NULL OR risk_categories = '')",
+        (project_id,),
+    ).fetchall()
+    conn.close()
+
+    count = 0
+    for a in articles:
+        if not a["summary"]:
+            continue
+        try:
+            result = categorize_article(subject, a["title"] or "", a["summary"])
+            conn = get_db()
+            conn.execute(
+                "UPDATE history SET risk_categories = ?, risk_note = ? WHERE id = ?",
+                (json.dumps(result.get("categories", [])), result.get("note", ""), a["id"]),
+            )
+            conn.commit()
+            conn.close()
+            count += 1
+        except Exception:
+            pass
+    return jsonify({"categorized": count})
+
+
+@app.route("/projects/<int:project_id>/update-synthesis", methods=["POST"])
+def project_update_synthesis(project_id):
+    conn = get_db()
+    project = conn.execute("SELECT project_name, client_name_cn FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+    subject = project["client_name_cn"] or project["project_name"] or ""
+    articles = conn.execute(
+        "SELECT title, risk_categories, risk_note FROM history WHERE project_id = ? ORDER BY created_at",
+        (project_id,),
+    ).fetchall()
+    conn.close()
+
+    try:
+        synthesis = generate_risk_synthesis(subject, [dict(a) for a in articles])
+        now = datetime.now(timezone.utc).isoformat()
+        conn = get_db()
+        conn.execute(
+            "UPDATE projects SET risk_synthesis = ?, risk_synthesis_updated_at = ? WHERE id = ?",
+            (synthesis, now, project_id),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"synthesis": synthesis, "updated_at": now})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/projects/<int:project_id>/entities")

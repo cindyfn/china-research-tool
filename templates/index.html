@@ -408,6 +408,22 @@
                 <!-- Client Profile -->
                 <div class="client-profile" id="client-profile"></div>
 
+                <!-- Risk Summary Dashboard -->
+                <div class="risk-summary-section" id="risk-summary-section" style="display:none">
+                    <div class="risk-summary-header">
+                        <h3>Risk Summary</h3>
+                        <div class="risk-summary-actions">
+                            <span class="risk-synthesis-updated" id="risk-synthesis-updated"></span>
+                            <button class="btn-action btn-sm" id="btn-analyze-all" onclick="analyzeAllArticles()" style="display:none">Analyze Uncategorized</button>
+                            <button class="btn-action btn-sm" onclick="updateRiskSynthesis()">Update Synthesis</button>
+                        </div>
+                    </div>
+                    <div class="risk-synthesis-box" id="risk-synthesis-box">
+                        <span class="risk-synthesis-placeholder">No synthesis yet — click "Update Synthesis" to generate.</span>
+                    </div>
+                    <div class="risk-categories-grid" id="risk-categories-grid"></div>
+                </div>
+
                 <!-- Translate within project -->
                 <div class="project-translate-input">
                     <h3>Add Article to Project</h3>
@@ -1344,7 +1360,7 @@
             projectsCache.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.id;
-                opt.textContent = p.project_name || p.client_name_en || p.client_name_cn || `Project #${p.id}`;
+                opt.textContent = p.project_name || `Project #${p.id}`;
                 sel.appendChild(opt);
             });
             if (currentProjectId !== null && currentProjectId !== undefined) {
@@ -1376,7 +1392,7 @@
                     statusEl.textContent = 'Saved to Unfiled';
                 } else {
                     const p = projectsCache.find(x => x.id === projectId);
-                    statusEl.textContent = `Saved to ${p ? (p.project_name || p.client_name_en || 'project') : 'project'}`;
+                    statusEl.textContent = `Saved to ${p ? (p.project_name || 'project') : 'project'}`;
                 }
                 statusEl.classList.add('flash');
                 setTimeout(() => statusEl.classList.remove('flash'), 1500);
@@ -1988,11 +2004,11 @@
                     }
                     return `<div class="project-card" onclick="navigateTo('project-detail', {projectId: ${p.id}})">
                         <div class="project-card-header">
-                            <span class="project-card-name">${escapeHtml(p.project_name || p.client_name_en || p.client_name_cn || 'Untitled')}</span>
+                            <span class="project-card-name">${escapeHtml(p.project_name || 'Untitled')}</span>
                             <span class="project-status-badge ${statusClass}">${escapeHtml(p.status)}</span>
                         </div>
-                        ${p.client_name_en ? `<div class="project-card-cn">${escapeHtml(p.client_name_en)}${p.client_name_cn ? ' / ' + escapeHtml(p.client_name_cn) : ''}</div>` : (p.client_name_cn ? `<div class="project-card-cn">${escapeHtml(p.client_name_cn)}</div>` : '')}
-                        ${p.industry ? `<div class="project-card-industry">${escapeHtml(p.industry)}</div>` : ''}
+                        ${p.client_name_en ? `<div class="project-card-cn">${escapeHtml(p.client_name_en)}</div>` : ''}
+                        ${p.report_type ? `<div class="project-card-industry">${escapeHtml(p.report_type)}</div>` : ''}
                         <div class="project-card-footer">
                             <span>${p.article_count} article${p.article_count !== 1 ? 's' : ''}</span>
                             ${dueBadge}
@@ -2087,18 +2103,16 @@
         async function createProject() {
             const projectName = prompt('Project name:');
             if (!projectName) return;
-            const nameEn = prompt('Client name (English, optional):') || '';
-            const nameCn = prompt('Client name (Chinese, optional):') || '';
-            const industry = prompt('Industry (optional):') || '';
+            const clientName = prompt('Client name (optional):') || '';
+            const reportType = prompt('Report type (optional):') || '';
 
             await fetch('/projects', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     project_name: projectName.trim(),
-                    client_name_en: nameEn.trim(),
-                    client_name_cn: nameCn.trim(),
-                    industry: industry.trim(),
+                    client_name_en: clientName.trim(),
+                    report_type: reportType.trim(),
                 }),
             });
             loadProjects();
@@ -2133,16 +2147,16 @@
                         <span class="project-status-badge ${statusClass} clickable-status" onclick="cycleProjectStatus()" title="Click to change status">${escapeHtml(project.status)}</span>
                     </div>
                     <div class="profile-field profile-cn" onclick="editProfileField(this, 'client_name_en')" title="Click to edit">
-                        <span class="profile-field-label">Client:</span> ${project.client_name_en ? escapeHtml(project.client_name_en) : '<span class="field-placeholder">+ Client name (EN)</span>'}
+                        <span class="profile-field-label">Client:</span> ${project.client_name_en ? escapeHtml(project.client_name_en) : '<span class="field-placeholder">+ Client name</span>'}
                         ${project.client_name_en ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'client_name_en\')" title="Clear field">&#128465;</button>' : ''}
                     </div>
                     <div class="profile-field profile-cn" onclick="editProfileField(this, 'client_name_cn')" title="Click to edit">
-                        ${project.client_name_cn ? escapeHtml(project.client_name_cn) : '<span class="field-placeholder">+ Client name (CN)</span>'}
+                        <span class="profile-field-label">Subject (CN):</span> ${project.client_name_cn ? escapeHtml(project.client_name_cn) : '<span class="field-placeholder">+ Subject name in Chinese (used for AI analysis)</span>'}
                         ${project.client_name_cn ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'client_name_cn\')" title="Clear field">&#128465;</button>' : ''}
                     </div>
-                    <div class="profile-field profile-industry" onclick="editProfileField(this, 'industry')" title="Click to edit">
-                        ${project.industry ? escapeHtml(project.industry) : '<span class="field-placeholder">+ Industry</span>'}
-                        ${project.industry ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'industry\')" title="Clear field">&#128465;</button>' : ''}
+                    <div class="profile-field profile-industry" onclick="editProfileField(this, 'report_type')" title="Click to edit">
+                        <span class="profile-field-label">Report type:</span> ${project.report_type ? escapeHtml(project.report_type) : '<span class="field-placeholder">+ Report type</span>'}
+                        ${project.report_type ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'report_type\')" title="Clear field">&#128465;</button>' : ''}
                     </div>
                     <div class="profile-row">
                         <div class="profile-field profile-due" onclick="editProfileDateField(this, 'due_by')" title="Click to edit">
@@ -2171,6 +2185,9 @@
 
                 // Articles
                 renderProjectArticles(articles);
+
+                // Risk Summary
+                loadRiskSummary(id);
 
             } catch (e) {
                 console.error('Failed to load project detail:', e);
@@ -2320,6 +2337,7 @@
                 document.querySelector('.project-translate-input').style.display = 'none';
                 document.getElementById('project-timeline-section').style.display = 'none';
                 document.getElementById('project-articles-section').style.display = 'none';
+                document.getElementById('risk-summary-section').style.display = 'none';
                 document.getElementById('project-article-detail').style.display = 'block';
 
                 // Meta line (URL + date)
@@ -2417,6 +2435,116 @@
             if (currentProjectId) loadProjectDetail(currentProjectId);
         }
 
+        // ---- Risk Summary Dashboard ----
+        const RISK_GROUPS = ['Financial Crime', 'Legal & Regulatory', 'Serious Crime', 'Conduct & Ethics', 'Reputation'];
+        const RISK_CATEGORIES = [
+            {key:'fraud',              label:'Fraud',                              group:'Financial Crime'},
+            {key:'money_laundering',   label:'Money Laundering',                   group:'Financial Crime'},
+            {key:'bribery_corruption', label:'Bribery & Corruption',               group:'Financial Crime'},
+            {key:'tax_accounting',     label:'Tax & Accounting Irregularities',    group:'Financial Crime'},
+            {key:'regulatory',         label:'Regulatory Breaches & Restrictions', group:'Legal & Regulatory'},
+            {key:'litigation',         label:'Litigation',                         group:'Legal & Regulatory'},
+            {key:'anti_competitive',   label:'Anti-Competitive Practices',         group:'Legal & Regulatory'},
+            {key:'terrorism',          label:'Terrorism',                          group:'Serious Crime'},
+            {key:'organised_crime',    label:'Organised Crime',                    group:'Serious Crime'},
+            {key:'conflict_of_interest',label:'Conflict of Interest',              group:'Conduct & Ethics'},
+            {key:'esg',                label:'ESG Issues',                         group:'Conduct & Ethics'},
+            {key:'reputational',       label:'Reputational Issues',                group:'Reputation'},
+            {key:'business_reputation',label:'Business Reputation Issues',         group:'Reputation'},
+        ];
+
+        async function loadRiskSummary(projectId) {
+            const section = document.getElementById('risk-summary-section');
+            try {
+                const resp = await fetch(`/projects/${projectId}/risk-summary`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                section.style.display = '';
+
+                // Synthesis
+                const synthBox = document.getElementById('risk-synthesis-box');
+                if (data.synthesis) {
+                    synthBox.textContent = data.synthesis;
+                } else {
+                    synthBox.innerHTML = '<span class="risk-synthesis-placeholder">No synthesis yet — click "Update Synthesis" to generate.</span>';
+                }
+                const updatedEl = document.getElementById('risk-synthesis-updated');
+                updatedEl.textContent = data.synthesis_updated_at ? 'Updated ' + data.synthesis_updated_at.slice(0,10) : '';
+
+                // Uncategorized banner
+                const grid = document.getElementById('risk-categories-grid');
+                let html = '';
+                if (data.uncategorized_count > 0) {
+                    html += `<div class="risk-uncategorized-banner">
+                        ${data.uncategorized_count} article${data.uncategorized_count > 1 ? 's' : ''} not yet risk-categorized.
+                        <button class="btn-action btn-sm" onclick="analyzeAllArticles()">Analyze Now</button>
+                    </div>`;
+                }
+
+                // Category grid grouped
+                RISK_GROUPS.forEach(group => {
+                    const cats = RISK_CATEGORIES.filter(c => c.group === group);
+                    html += `<div class="risk-group"><div class="risk-group-label">${escapeHtml(group)}</div>`;
+                    cats.forEach(cat => {
+                        const info = data.categories[cat.key];
+                        const articles = info ? info.articles : [];
+                        const hasHits = articles.length > 0;
+                        const flag = hasHits ? '⚠' : '✓';
+                        const articleTags = hasHits
+                            ? articles.map(a => `<button class="risk-article-tag" onclick="openArticleDetail(${a.id})" title="${escapeHtml(a.title)}">${escapeHtml(a.title.length > 30 ? a.title.slice(0,30)+'…' : a.title)}</button>`).join('')
+                            : '<span class="risk-none-label">none identified</span>';
+                        html += `<div class="risk-category-row${hasHits ? ' has-hits' : ''}">
+                            <span class="risk-flag">${flag}</span>
+                            <span class="risk-category-name">${escapeHtml(cat.label)}</span>
+                            <div class="risk-category-articles">${articleTags}</div>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                });
+                grid.innerHTML = html;
+            } catch(e) {
+                section.style.display = 'none';
+            }
+        }
+
+        async function updateRiskSynthesis() {
+            if (!currentProjectId) return;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+            try {
+                const resp = await fetch(`/projects/${currentProjectId}/update-synthesis`, {method: 'POST'});
+                if (!resp.ok) throw new Error('Failed');
+                const data = await resp.json();
+                const synthBox = document.getElementById('risk-synthesis-box');
+                synthBox.textContent = data.synthesis;
+                document.getElementById('risk-synthesis-updated').textContent = 'Updated ' + data.updated_at.slice(0,10);
+            } catch(e) {
+                alert('Failed to update synthesis: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Update Synthesis';
+            }
+        }
+
+        async function analyzeAllArticles() {
+            if (!currentProjectId) return;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+            try {
+                const resp = await fetch(`/projects/${currentProjectId}/categorize-all`, {method: 'POST'});
+                if (!resp.ok) throw new Error('Failed');
+                await loadRiskSummary(currentProjectId);
+            } catch(e) {
+                alert('Analysis failed: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Analyze Now';
+            }
+        }
+
         // ---- Translate within Project ----
         async function translateInProject() {
             if (!currentProjectId) return;
@@ -2505,7 +2633,7 @@
                 input.type = 'text';
                 input.className = 'profile-inline-input';
                 input.value = currentText;
-                const placeholders = { project_name: 'Project name', client_name_en: 'Client name (EN)', client_name_cn: 'Client name (CN)', industry: 'Industry' };
+                const placeholders = { project_name: 'Project name', client_name_en: 'Client name', client_name_cn: 'Subject name (CN)', report_type: 'Report type' };
                 input.placeholder = placeholders[field] || '';
                 el.innerHTML = '';
                 el.appendChild(input);
