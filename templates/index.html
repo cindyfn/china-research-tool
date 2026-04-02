@@ -519,11 +519,6 @@
                         </div>
                     </div>
 
-                    <div class="summary-panel" id="pa-summary-section" style="display:none">
-                        <div class="summary-header">Executive Summary</div>
-                        <div class="summary-body" id="pa-summary-panel"></div>
-                    </div>
-
                     <!-- Article Risk Analysis -->
                     <div class="article-analysis-section" id="pa-analysis-section" style="display:none">
                         <div class="article-analysis-header">
@@ -532,6 +527,11 @@
                         </div>
                         <div class="article-analysis-note" id="pa-analysis-note"></div>
                         <div class="article-analysis-cats" id="pa-analysis-cats"></div>
+                    </div>
+
+                    <div class="summary-panel" id="pa-summary-section" style="display:none">
+                        <div class="summary-header">Executive Summary</div>
+                        <div class="summary-body" id="pa-summary-panel"></div>
                     </div>
 
                     <div class="source-meta" id="pa-source-section" style="display:none">
@@ -2178,13 +2178,13 @@
                         <h2 class="profile-editable-title" onclick="editProfileField(this, 'project_name')" title="Click to edit">${escapeHtml(project.project_name || 'Untitled Project')}</h2>
                         <span class="project-status-badge ${statusClass} clickable-status" onclick="cycleProjectStatus()" title="Click to change status">${escapeHtml(project.status)}</span>
                     </div>
-                    <div class="profile-field profile-cn" onclick="editProfileField(this, 'client_name_en')" title="Click to edit">
-                        <span class="profile-field-label">Client:</span> ${project.client_name_en ? escapeHtml(project.client_name_en) : '<span class="field-placeholder">+ Client name</span>'}
-                        ${project.client_name_en ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'client_name_en\')" title="Clear field">&#128465;</button>' : ''}
-                    </div>
                     <div class="profile-field profile-cn" onclick="editProfileField(this, 'client_name_cn')" title="Click to edit">
                         <span class="profile-field-label">Subject (CN):</span> ${project.client_name_cn ? escapeHtml(project.client_name_cn) : '<span class="field-placeholder">+ Subject name in Chinese (used for AI analysis)</span>'}
                         ${project.client_name_cn ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'client_name_cn\')" title="Clear field">&#128465;</button>' : ''}
+                    </div>
+                    <div class="profile-field profile-cn" onclick="editProfileField(this, 'client_name_en')" title="Click to edit">
+                        <span class="profile-field-label">Client:</span> ${project.client_name_en ? escapeHtml(project.client_name_en) : '<span class="field-placeholder">+ Client name</span>'}
+                        ${project.client_name_en ? '<button class="field-clear-btn" onclick="event.stopPropagation(); clearProfileField(\'client_name_en\')" title="Clear field">&#128465;</button>' : ''}
                     </div>
                     <div class="profile-field profile-industry" onclick="editProfileField(this, 'report_type')" title="Click to edit">
                         <span class="profile-field-label">Report type:</span> ${project.report_type ? escapeHtml(project.report_type) : '<span class="field-placeholder">+ Report type</span>'}
