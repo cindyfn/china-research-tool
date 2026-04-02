@@ -1155,11 +1155,12 @@ def project_get(project_id):
     return jsonify({
         "id": row["id"],
         "project_name": row["project_name"] or "",
-        "client_name_cn": row["client_name_cn"],
-        "client_name_en": row["client_name_en"],
-        "industry": row["industry"],
+        "client_name_cn": row["client_name_cn"] or "",
+        "client_name_en": row["client_name_en"] or "",
+        "report_type": row["report_type"] or "",
+        "industry": row["industry"] or "",
         "status": row["status"],
-        "notes": row["notes"],
+        "notes": row["notes"] or "",
         "due_by": row["due_by"] or "",
         "created_at": row["created_at"],
     })

@@ -2305,7 +2305,8 @@
                 const title = a.title || a.preview || '(untitled)';
                 const date = (a.pub_date || a.created_at || '').slice(0, 10);
                 const summaryPreview = (a.summary || '').split('\n')[0].slice(0, 100);
-                return `<div class="timeline-item" data-article-id="${a.id}"
+                return `<div class="timeline-item" data-article-id="${a.id}" style="cursor:pointer"
+                    onclick="openArticleDetail(${a.id})"
                     onmouseenter="highlightArticleCard(${a.id}, true)"
                     onmouseleave="highlightArticleCard(${a.id}, false)">
                     <div class="timeline-dot"></div>
