@@ -85,6 +85,8 @@ def init_db():
         "ALTER TABLE projects ADD COLUMN report_type TEXT DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN risk_synthesis TEXT DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN risk_synthesis_updated_at TEXT DEFAULT ''",
+        "ALTER TABLE projects ADD COLUMN entities_cache TEXT DEFAULT ''",
+        "ALTER TABLE projects ADD COLUMN entities_updated_at TEXT DEFAULT ''",
         "ALTER TABLE history ADD COLUMN risk_categories TEXT DEFAULT ''",
         "ALTER TABLE history ADD COLUMN risk_note TEXT DEFAULT ''",
         "ALTER TABLE history ADD COLUMN article_title_en TEXT DEFAULT ''",
@@ -1291,6 +1293,23 @@ def project_update_synthesis(project_id):
 
 @app.route("/projects/<int:project_id>/entities")
 def project_entities(project_id):
+    """Return cached entities — no AI call."""
+    conn = get_db()
+    row = conn.execute(
+        "SELECT entities_cache, entities_updated_at FROM projects WHERE id = ?", (project_id,)
+    ).fetchone()
+    conn.close()
+    if not row or not row["entities_cache"]:
+        return jsonify({"entities": [], "updated_at": ""})
+    try:
+        return jsonify({"entities": json.loads(row["entities_cache"]), "updated_at": row["entities_updated_at"] or ""})
+    except Exception:
+        return jsonify({"entities": [], "updated_at": ""})
+
+
+@app.route("/projects/<int:project_id>/update-entities", methods=["POST"])
+def project_update_entities(project_id):
+    """Re-run entity extraction across all articles and cache the result."""
     conn = get_db()
     rows = conn.execute(
         "SELECT summary FROM history WHERE project_id = ? AND summary IS NOT NULL AND summary != ''",
@@ -1299,7 +1318,7 @@ def project_entities(project_id):
     conn.close()
     summaries = [r["summary"] for r in rows]
     if not summaries:
-        return jsonify([])
+        return jsonify({"entities": [], "updated_at": ""})
 
     combined = "\n\n".join(f"Article {i+1}:\n{s}" for i, s in enumerate(summaries))
     try:
@@ -1319,11 +1338,18 @@ def project_entities(project_id):
             max_tokens=2000,
         )
         raw = resp.choices[0].message.content.strip()
-        # Extract JSON from response (handle markdown code blocks)
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
         entities = json.loads(raw)
-        return jsonify(entities)
+        now = datetime.now(timezone.utc).isoformat()
+        conn = get_db()
+        conn.execute(
+            "UPDATE projects SET entities_cache = ?, entities_updated_at = ? WHERE id = ?",
+            (json.dumps(entities), now, project_id),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"entities": entities, "updated_at": now})
     except Exception as e:
         print(f"Entity extraction error: {e}")
         return jsonify({"error": "Entity extraction failed"}), 500

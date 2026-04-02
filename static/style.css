@@ -3538,3 +3538,37 @@ body.dark-mode .risk-category-row.has-hits {
 }
 body.dark-mode .risk-category-name { color: #ddd; }
 body.dark-mode .risk-group-label { color: #666; }
+
+/* ===== Collapsible Sections ===== */
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+}
+.collapsible-header h3 {
+    margin: 0;
+    flex: 1;
+}
+.collapsible-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 10px;
+}
+.collapse-chevron {
+    font-size: 11px;
+    color: #888;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+.collapsible-section.collapsed .collapse-chevron {
+    transform: rotate(180deg);
+}
+.collapsible-section.collapsed .collapsible-body {
+    display: none;
+}
+.collapsible-body {
+    margin-top: 10px;
+}

@@ -409,19 +409,22 @@
                 <div class="client-profile" id="client-profile"></div>
 
                 <!-- Risk Summary Dashboard -->
-                <div class="risk-summary-section" id="risk-summary-section" style="display:none">
-                    <div class="risk-summary-header">
+                <div class="risk-summary-section collapsible-section" id="risk-summary-section" style="display:none">
+                    <div class="collapsible-header" onclick="toggleSection('risk-summary-section')">
                         <h3>Risk Summary</h3>
-                        <div class="risk-summary-actions">
+                        <div class="collapsible-header-actions" onclick="event.stopPropagation()">
                             <span class="risk-synthesis-updated" id="risk-synthesis-updated"></span>
-                            <button class="btn-action btn-sm" id="btn-analyze-all" onclick="analyzeAllArticles()" style="display:none">Analyze Uncategorized</button>
+                            <button class="btn-action btn-sm" onclick="analyzeAllArticles()" id="btn-analyze-all" style="display:none">Analyze Uncategorized</button>
                             <button class="btn-action btn-sm" onclick="updateRiskSynthesis()">Update Synthesis</button>
                         </div>
+                        <span class="collapse-chevron">▲</span>
                     </div>
-                    <div class="risk-synthesis-box" id="risk-synthesis-box">
-                        <span class="risk-synthesis-placeholder">No synthesis yet — click "Update Synthesis" to generate.</span>
+                    <div class="collapsible-body">
+                        <div class="risk-synthesis-box" id="risk-synthesis-box">
+                            <span class="risk-synthesis-placeholder">No synthesis yet — click "Update Synthesis" to generate.</span>
+                        </div>
+                        <div class="risk-categories-grid" id="risk-categories-grid"></div>
                     </div>
-                    <div class="risk-categories-grid" id="risk-categories-grid"></div>
                 </div>
 
                 <!-- Translate within project -->
@@ -437,18 +440,28 @@
                 </div>
 
                 <!-- Timeline -->
-                <div class="project-timeline-section" id="project-timeline-section" style="display:none">
-                    <h3>Timeline</h3>
-                    <div class="project-timeline" id="project-timeline"></div>
+                <div class="project-timeline-section collapsible-section" id="project-timeline-section" style="display:none">
+                    <div class="collapsible-header" onclick="toggleSection('project-timeline-section')">
+                        <h3>Timeline</h3>
+                        <span class="collapse-chevron">▲</span>
+                    </div>
+                    <div class="collapsible-body">
+                        <div class="project-timeline" id="project-timeline"></div>
+                    </div>
                 </div>
 
                 <!-- Key Entities -->
-                <div class="project-entities-section" id="project-entities-section" style="display:none">
-                    <div class="entities-header">
+                <div class="project-entities-section collapsible-section" id="project-entities-section" style="display:none">
+                    <div class="collapsible-header" onclick="toggleSection('project-entities-section')">
                         <h3>Key Entities</h3>
-                        <button class="btn-action btn-sm" onclick="loadProjectEntities(currentProjectId)">Refresh</button>
+                        <div class="collapsible-header-actions" onclick="event.stopPropagation()">
+                            <span class="risk-synthesis-updated" id="entities-updated"></span>
+                            <button class="btn-action btn-sm" onclick="updateProjectEntities()">Update</button>
+                        </div>
                     </div>
-                    <div class="entities-body" id="project-entities"></div>
+                    <div class="collapsible-body">
+                        <div class="entities-body" id="project-entities"></div>
+                    </div>
                 </div>
 
                 <!-- Articles -->
@@ -2173,12 +2186,12 @@
                 // Timeline
                 buildTimeline(articles);
 
-                // Entities
+                // Entities — load from cache only, no AI call
                 const hasSummaries = articles.some(a => a.summary);
                 const entSection = document.getElementById('project-entities-section');
                 if (hasSummaries) {
                     entSection.style.display = '';
-                    loadProjectEntities(currentProjectId);
+                    loadCachedEntities(currentProjectId);
                 } else {
                     entSection.style.display = 'none';
                 }
@@ -2194,33 +2207,64 @@
             }
         }
 
-        async function loadProjectEntities(projectId) {
+        function renderEntities(entities, updatedAt) {
+            const container = document.getElementById('project-entities');
+            const updatedEl = document.getElementById('entities-updated');
+            if (updatedAt) updatedEl.textContent = 'Updated ' + updatedAt.slice(0, 10);
+            if (!entities.length) {
+                container.innerHTML = '<div class="entities-empty">No entities cached yet — click Update to extract.</div>';
+                return;
+            }
+            const typeIcons = { person: '\u{1F464}', company: '\u{1F3E2}', organization: '\u{1F3DB}', government: '\u{1F3DB}', location: '\u{1F4CD}', regulation: '\u{1F4DC}', other: '\u{1F539}' };
+            container.innerHTML = entities.map(e => {
+                const icon = typeIcons[e.type] || typeIcons.other;
+                const barWidth = Math.min(100, (e.count / entities[0].count) * 100);
+                return `<div class="entity-row">
+                    <div class="entity-bar" style="width:${barWidth}%"></div>
+                    <span class="entity-icon">${icon}</span>
+                    <span class="entity-name">${escapeHtml(e.entity)}</span>
+                    <span class="entity-type">${escapeHtml(e.type)}</span>
+                    <span class="entity-count">${e.count}</span>
+                </div>`;
+            }).join('');
+        }
+
+        async function loadCachedEntities(projectId) {
+            const container = document.getElementById('project-entities');
+            try {
+                const resp = await fetch(`/projects/${projectId}/entities`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                renderEntities(data.entities || [], data.updated_at || '');
+            } catch(e) {
+                container.innerHTML = '<div class="entities-empty">Failed to load entities.</div>';
+            }
+        }
+
+        async function updateProjectEntities() {
+            if (!currentProjectId) return;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
             const container = document.getElementById('project-entities');
             container.innerHTML = '<div class="entities-loading">Extracting entities...</div>';
             try {
-                const resp = await fetch(`/projects/${projectId}/entities`);
+                const resp = await fetch(`/projects/${currentProjectId}/update-entities`, { method: 'POST' });
                 if (!resp.ok) throw new Error('Failed');
-                const entities = await resp.json();
-                if (!entities.length) {
-                    container.innerHTML = '<div class="entities-empty">No entities found</div>';
-                    return;
-                }
-                const typeIcons = { person: '\u{1F464}', company: '\u{1F3E2}', organization: '\u{1F3DB}', government: '\u{1F3DB}', location: '\u{1F4CD}', regulation: '\u{1F4DC}', other: '\u{1F539}' };
-                container.innerHTML = entities.map(e => {
-                    const icon = typeIcons[e.type] || typeIcons.other;
-                    const barWidth = Math.min(100, (e.count / entities[0].count) * 100);
-                    return `<div class="entity-row">
-                        <div class="entity-bar" style="width:${barWidth}%"></div>
-                        <span class="entity-icon">${icon}</span>
-                        <span class="entity-name">${escapeHtml(e.entity)}</span>
-                        <span class="entity-type">${escapeHtml(e.type)}</span>
-                        <span class="entity-count">${e.count}</span>
-                    </div>`;
-                }).join('');
-            } catch (e) {
-                console.error('Entity extraction failed:', e);
-                container.innerHTML = '<div class="entities-empty">Failed to extract entities</div>';
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                renderEntities(data.entities || [], data.updated_at || '');
+            } catch(e) {
+                container.innerHTML = '<div class="entities-empty">Extraction failed: ' + e.message + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Update';
             }
+        }
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.classList.toggle('collapsed');
         }
 
         function buildTimeline(articles) {
