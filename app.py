@@ -1370,7 +1370,7 @@ def project_update_entities(project_id):
                 )},
                 {"role": "user", "content": combined},
             ],
-            max_tokens=2000,
+            max_tokens=8000,
         )
         raw = resp.choices[0].message.content.strip()
         if "```" in raw:
