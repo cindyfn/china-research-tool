@@ -524,6 +524,16 @@
                         <div class="summary-body" id="pa-summary-panel"></div>
                     </div>
 
+                    <!-- Article Risk Analysis -->
+                    <div class="article-analysis-section" id="pa-analysis-section" style="display:none">
+                        <div class="article-analysis-header">
+                            <span>Risk Analysis</span>
+                            <button class="btn-action btn-sm" id="pa-reanalyze-btn" onclick="reanalyzeArticle()">Re-analyze</button>
+                        </div>
+                        <div class="article-analysis-note" id="pa-analysis-note"></div>
+                        <div class="article-analysis-cats" id="pa-analysis-cats"></div>
+                    </div>
+
                     <div class="source-meta" id="pa-source-section" style="display:none">
                         <span class="source-meta-label">Source:</span>
                         <span class="source-meta-detail" id="pa-source-detail"></span>
@@ -2073,11 +2083,20 @@
                         <select class="unfiled-assign-select" onchange="assignUnfiledToProject(${item.id}, this.value)">
                             ${projectOptions}
                         </select>
+                        <button class="unfiled-delete-btn" onclick="deleteUnfiledArticle(event, ${item.id})" title="Delete">&times;</button>
                     </div>`;
                 }).join('');
             } catch (e) {
                 console.error('Failed to load unfiled:', e);
             }
+        }
+
+        async function deleteUnfiledArticle(e, id) {
+            e.stopPropagation();
+            if (!confirm('Delete this article?')) return;
+            await fetch(`/history/${id}`, { method: 'DELETE' });
+            loadUnfiled();
+            updateUnfiledBadge();
         }
 
         let openedFromUnfiled = false;
@@ -2210,7 +2229,7 @@
         function renderEntities(entities, updatedAt) {
             const container = document.getElementById('project-entities');
             const updatedEl = document.getElementById('entities-updated');
-            if (updatedAt) updatedEl.textContent = 'Updated ' + updatedAt.slice(0, 10);
+            if (updatedAt) updatedEl.textContent = 'Updated ' + formatLocalTimestamp(updatedAt);
             if (!entities.length) {
                 container.innerHTML = '<div class="entities-empty">No entities cached yet — click Update to extract.</div>';
                 return;
@@ -2448,6 +2467,9 @@
                     notesSection.style.display = 'none';
                 }
 
+                // Risk Analysis
+                renderArticleAnalysis(entry.risk_categories || [], entry.risk_note || '');
+
                 // Populate metadata card
                 populateMetadataCard('pa-', entry);
 
@@ -2458,6 +2480,50 @@
                 document.getElementById('project-article-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch (e) {
                 console.error('Failed to load article detail:', e);
+            }
+        }
+
+        function renderArticleAnalysis(categories, note) {
+            const section = document.getElementById('pa-analysis-section');
+            const noteEl = document.getElementById('pa-analysis-note');
+            const catsEl = document.getElementById('pa-analysis-cats');
+
+            if (!note && (!categories || !categories.length)) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = '';
+            noteEl.textContent = note || '';
+
+            if (categories && categories.length) {
+                const catMap = {};
+                RISK_CATEGORIES.forEach(c => { catMap[c.key] = c.label; });
+                catsEl.innerHTML = categories
+                    .map(k => `<span class="article-risk-badge">${escapeHtml(catMap[k] || k)}</span>`)
+                    .join('');
+            } else {
+                catsEl.innerHTML = '<span class="risk-none-label">No adverse categories flagged</span>';
+            }
+        }
+
+        async function reanalyzeArticle() {
+            if (!currentArticleDetailId) return;
+            const btn = document.getElementById('pa-reanalyze-btn');
+            btn.disabled = true;
+            btn.textContent = 'Analyzing...';
+            try {
+                const resp = await fetch(`/history/${currentArticleDetailId}/reanalyze`, { method: 'POST' });
+                if (!resp.ok) throw new Error('Failed');
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                renderArticleAnalysis(data.risk_categories || [], data.risk_note || '');
+                // Refresh risk summary dashboard in background
+                if (currentProjectId) loadRiskSummary(currentProjectId);
+            } catch(e) {
+                alert('Re-analysis failed: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Re-analyze';
             }
         }
 
@@ -2477,6 +2543,12 @@
             document.querySelector('.project-translate-input').style.display = '';
             // Re-load to restore timeline + articles visibility
             if (currentProjectId) loadProjectDetail(currentProjectId);
+        }
+
+        function formatLocalTimestamp(isoString) {
+            if (!isoString) return '';
+            const d = new Date(isoString);
+            return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
         }
 
         // ---- Risk Summary Dashboard ----
@@ -2514,7 +2586,7 @@
                     synthBox.innerHTML = '<span class="risk-synthesis-placeholder">No synthesis yet — click "Update Synthesis" to generate.</span>';
                 }
                 const updatedEl = document.getElementById('risk-synthesis-updated');
-                updatedEl.textContent = data.synthesis_updated_at ? 'Updated ' + data.synthesis_updated_at.slice(0,10) : '';
+                updatedEl.textContent = data.synthesis_updated_at ? 'Updated ' + formatLocalTimestamp(data.synthesis_updated_at) : '';
 
                 // Uncategorized banner
                 const grid = document.getElementById('risk-categories-grid');
@@ -2563,7 +2635,7 @@
                 const data = await resp.json();
                 const synthBox = document.getElementById('risk-synthesis-box');
                 synthBox.textContent = data.synthesis;
-                document.getElementById('risk-synthesis-updated').textContent = 'Updated ' + data.updated_at.slice(0,10);
+                document.getElementById('risk-synthesis-updated').textContent = 'Updated ' + formatLocalTimestamp(data.updated_at);
             } catch(e) {
                 alert('Failed to update synthesis: ' + e.message);
             } finally {

@@ -794,7 +794,41 @@ def history_get(entry_id):
         "author": row["author"] or "",
         "pub_date": row["pub_date"] or "",
         "created_at": row["created_at"],
+        "risk_categories": json.loads(row["risk_categories"] or "[]"),
+        "risk_note": row["risk_note"] or "",
     })
+
+
+@app.route("/history/<int:entry_id>/reanalyze", methods=["POST"])
+def history_reanalyze(entry_id):
+    """Re-run risk categorization for a single article."""
+    conn = get_db()
+    row = conn.execute("SELECT title, summary, project_id FROM history WHERE id = ?", (entry_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+    if not row["project_id"]:
+        conn.close()
+        return jsonify({"error": "Article not in a project"}), 400
+    project = conn.execute("SELECT project_name, client_name_cn FROM projects WHERE id = ?", (row["project_id"],)).fetchone()
+    conn.close()
+    subject = (project["client_name_cn"] or project["project_name"]) if project else ""
+    if not subject or not row["summary"]:
+        return jsonify({"error": "Missing subject or summary"}), 400
+    try:
+        result = categorize_article(subject, row["title"] or "", row["summary"])
+        cats = result.get("categories", [])
+        note = result.get("note", "")
+        conn = get_db()
+        conn.execute(
+            "UPDATE history SET risk_categories = ?, risk_note = ? WHERE id = ?",
+            (json.dumps(cats), note, entry_id),
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"risk_categories": cats, "risk_note": note})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/history/<int:entry_id>", methods=["PUT"])
@@ -1141,7 +1175,7 @@ def project_update(project_id):
         return jsonify({"error": "Not found"}), 404
     updates = []
     params = []
-    for field in ("project_name", "client_name_cn", "client_name_en", "industry", "status", "notes", "due_by"):
+    for field in ("project_name", "client_name_cn", "client_name_en", "report_type", "industry", "status", "notes", "due_by"):
         if field in data:
             updates.append(f"{field} = ?")
             params.append((data[field] or "").strip())
@@ -1338,8 +1372,10 @@ def project_update_entities(project_id):
             max_tokens=2000,
         )
         raw = resp.choices[0].message.content.strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        if "```" in raw:
+            raw = raw.split("```", 1)[1]          # drop everything before first ```
+            raw = raw.split("\n", 1)[-1]           # drop the language tag line (e.g. "json")
+            raw = raw.rsplit("```", 1)[0].strip()  # drop closing ```
         entities = json.loads(raw)
         now = datetime.now(timezone.utc).isoformat()
         conn = get_db()

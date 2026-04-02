@@ -3572,3 +3572,64 @@ body.dark-mode .risk-group-label { color: #666; }
 .collapsible-body {
     margin-top: 10px;
 }
+
+/* ===== Article Risk Analysis Section ===== */
+.article-analysis-section {
+    background: #fff5f5;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+.article-analysis-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #991b1b;
+    margin-bottom: 8px;
+}
+.article-analysis-note {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+.article-analysis-cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.article-risk-badge {
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+body.dark-mode .article-analysis-section {
+    background: #2d1a1a;
+    border-color: #7f1d1d;
+}
+body.dark-mode .article-analysis-note { color: #ddd; }
+body.dark-mode .article-analysis-header { color: #fca5a5; }
+
+/* ===== Unfiled delete button ===== */
+.unfiled-delete-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.unfiled-delete-btn:hover {
+    color: #dc2626;
+}
